@@ -136,5 +136,5 @@ void UShipHUDWidget::UpdateContinuousTelemetry()
 		// Envia os números calculados direto para a Placa de Vídeo!
 		PitchLadderMID->SetScalarParameterValue(FName("RollAngle"), NormalizedRoll);
 		PitchLadderMID->SetScalarParameterValue(FName("PitchOffset"), NormalizedPitch);
-	}M_PitchLadder
+	}
 }
