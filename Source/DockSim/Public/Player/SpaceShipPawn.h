@@ -11,7 +11,8 @@ class UCameraComponent;
 class UInputAction;
 class USpaceMovementComponent;
 class USpaceResourceComponent;
-
+class UCFTVComponent;
+class USceneCaptureComponent2D;
 
 UENUM(BlueprintType)
 enum class ERotationMode : uint8
@@ -39,10 +40,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> CockpitCamera;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<USpaceResourceComponent> ResourceComponent;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> MoveAction;
 	
@@ -60,6 +58,25 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> PrecisionAction;
+	
+	// ==========================================
+	// SISTEMA DE CFTV (Câmeras do Cockpit)
+	// ==========================================
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
+	TObjectPtr<USceneCaptureComponent2D> Cam_Front;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
+	TObjectPtr<USceneCaptureComponent2D> Cam_Left;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
+	TObjectPtr<USceneCaptureComponent2D> Cam_Right;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
+	TObjectPtr<USceneCaptureComponent2D> Cam_Rear;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
+	TObjectPtr<USceneCaptureComponent2D> Cam_Docking; 
 		
 	void Move(const FInputActionValue& Value);
 	void OnThrottle(const FInputActionValue& Value);
@@ -75,6 +92,13 @@ private:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class USpaceTelemetryComponent> TelemetryComponent;
+		
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USpaceResourceComponent> ResourceComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Software", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCFTVComponent> CFTVSystem;
+	
 	
 	ERotationMode CurrentRotState = ERotationMode::Locked;
 	

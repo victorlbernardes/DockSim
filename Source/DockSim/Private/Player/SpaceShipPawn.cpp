@@ -2,6 +2,8 @@
 #include "Components/StaticMeshComponent.h"
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputComponent.h"
+#include "Components/CFTVComponent.h"
+#include "Components/SceneCaptureComponent2D.h"
 #include "Components/SpaceMovementComponent.h"
 #include "Components/SpaceResourceComponent.h"
 #include "Components/SpaceTelemetryComponent.h"
@@ -9,6 +11,10 @@
 void ASpaceShipPawn::BeginPlay()
 {
 	Super::BeginPlay();
+	if (CFTVSystem)
+	{
+		CFTVSystem->InitializeCameras(Cam_Front, Cam_Rear, Cam_Left, Cam_Right, Cam_Docking);
+	}
 }
 
 ASpaceShipPawn::ASpaceShipPawn()
@@ -29,6 +35,28 @@ ASpaceShipPawn::ASpaceShipPawn()
 	MovementComponent = CreateDefaultSubobject<USpaceMovementComponent>(TEXT("MovementComponent"));
 	TelemetryComponent = CreateDefaultSubobject<USpaceTelemetryComponent>(TEXT("TelemetryComponent"));
 	ResourceComponent = CreateDefaultSubobject<USpaceResourceComponent>(TEXT("ResourceComponent"));
+	CFTVSystem = CreateDefaultSubobject<UCFTVComponent>(TEXT("CFTV_System"));
+	
+	//Criação Física das Câmeras (Todas nascem DESLIGADAS)
+	Cam_Front = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Front"));
+	Cam_Front->SetupAttachment(RootComponent);
+	Cam_Front->bCaptureEveryFrame = false; 
+
+	Cam_Rear = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Rear"));
+	Cam_Rear->SetupAttachment(RootComponent);
+	Cam_Rear->bCaptureEveryFrame = false;
+
+	Cam_Left = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Left"));
+	Cam_Left->SetupAttachment(RootComponent);
+	Cam_Left->bCaptureEveryFrame = false;
+
+	Cam_Right = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Right"));
+	Cam_Right->SetupAttachment(RootComponent);
+	Cam_Right->bCaptureEveryFrame = false;
+
+	Cam_Docking = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Docking"));
+	Cam_Docking->SetupAttachment(RootComponent);
+	Cam_Docking->bCaptureEveryFrame = false;
 }
 
 void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
