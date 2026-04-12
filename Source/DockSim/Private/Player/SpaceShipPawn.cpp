@@ -7,19 +7,12 @@
 #include "Components/SpaceMovementComponent.h"
 #include "Components/SpaceResourceComponent.h"
 #include "Components/SpaceTelemetryComponent.h"
-
-void ASpaceShipPawn::BeginPlay()
-{
-	Super::BeginPlay();
-	if (CFTVSystem)
-	{
-		CFTVSystem->InitializeCameras(Cam_Front, Cam_Rear, Cam_Left, Cam_Right, Cam_Docking);
-	}
-}
+#include "Components/WidgetComponent.h"
+#include "UI/ShipHUDWidget.h"
 
 ASpaceShipPawn::ASpaceShipPawn()
 {
-	PrimaryActorTick.bCanEverTick = false;	
+	PrimaryActorTick.bCanEverTick = true;	
 	
 	ShipMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
     
@@ -31,6 +24,7 @@ ASpaceShipPawn::ASpaceShipPawn()
     
 	// 4. Anexamos (colamos) a câmera na malha. Se a nave girar, a câmera gira junto!
 	CockpitCamera->SetupAttachment(ShipMesh);
+	CockpitCamera->PostProcessSettings.MotionBlurAmount = 0.0f;
 	
 	MovementComponent = CreateDefaultSubobject<USpaceMovementComponent>(TEXT("MovementComponent"));
 	TelemetryComponent = CreateDefaultSubobject<USpaceTelemetryComponent>(TEXT("TelemetryComponent"));
@@ -57,6 +51,56 @@ ASpaceShipPawn::ASpaceShipPawn()
 	Cam_Docking = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Docking"));
 	Cam_Docking->SetupAttachment(RootComponent);
 	Cam_Docking->bCaptureEveryFrame = false;
+	
+	MainDisplayComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("MainDisplay"));
+
+	// 2. Anexamos ao ShipMesh (igual você fez com a câmera)
+	MainDisplayComponent->SetupAttachment(ShipMesh);
+
+	// 3. Configurações Hardcore do Componente
+	MainDisplayComponent->SetWidgetSpace(EWidgetSpace::World); // Essencial para ser 3D
+	MainDisplayComponent->SetDrawSize(FVector2D(4096, 2048 )); // Resolução interna da tela
+	MainDisplayComponent->SetVisibility(true);
+	MainDisplayComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Evita que a tela bloqueie tiros ou física
+	MainDisplayComponent->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
+}
+
+void ASpaceShipPawn::BeginPlay()
+{
+	Super::BeginPlay();
+	if (CFTVSystem)
+	{
+		CFTVSystem->InitializeCameras(Cam_Front, Cam_Rear, Cam_Left, Cam_Right, Cam_Docking);
+	}
+	
+	if (MainDisplayComponent && MainDisplayClass)
+	{
+		MainDisplayComponent->SetWidgetClass(MainDisplayClass);
+		MainDisplayComponent->InitWidget();
+	}
+}
+
+void ASpaceShipPawn::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (!CockpitCamera) return;
+
+	// ==========================================
+	// A MOLA DE RETORNO DO PESCOÇO (Free Look)
+	// ==========================================
+	if (CurrentVisionMode != EPilotVisionMode::FreeLook)
+	{
+		FRotator CurrentHeadRot = CockpitCamera->GetRelativeRotation();
+    
+		// Se a cabeça não estiver perfeitamente reta (ZeroRotator)
+		if (!CurrentHeadRot.Equals(FRotator::ZeroRotator, 0.1f))
+		{
+			// Volta a cabeça para frente (0,0,0) suavemente
+			FRotator SmoothReturn = FMath::RInterpTo(CurrentHeadRot, FRotator::ZeroRotator, DeltaTime, 10.0f);
+			CockpitCamera->SetRelativeRotation(SmoothReturn);
+		}
+	}
 }
 
 void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -93,6 +137,12 @@ void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 			EnhancedInputComponent->BindAction(PrecisionAction, ETriggerEvent::Started,   this, &ASpaceShipPawn::OnPrecisionModeStart);
 			EnhancedInputComponent->BindAction(PrecisionAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::OnPrecisionModeEnd);
 			EnhancedInputComponent->BindAction(PrecisionAction, ETriggerEvent::Canceled, this, &ASpaceShipPawn::OnPrecisionModeEnd);
+		}
+		if (FreeLookAction)
+		{
+			EnhancedInputComponent->BindAction(FreeLookAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnFreeLookStart);
+			EnhancedInputComponent->BindAction(FreeLookAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::OnFreeLookEnd);
+			EnhancedInputComponent->BindAction(FreeLookAction, ETriggerEvent::Canceled, this, &ASpaceShipPawn::OnFreeLookEnd);
 		}
 	}
 }
@@ -159,6 +209,28 @@ void ASpaceShipPawn::Look(const FInputActionValue& Value)
 {
     FVector2D LookAxisVector = Value.Get<FVector2D>();
 
+	// ==========================================
+	// INTERCEPTAÇÃO: O MODO FREE LOOK
+	// ==========================================
+	if (CurrentVisionMode == EPilotVisionMode::FreeLook)
+	{
+		FRotator CurrentHeadRot = CockpitCamera->GetRelativeRotation();
+
+		// EIXO Y (PITCH): Se você quiser inverter o eixo da cabeça em relação à nave, 
+		// basta trocar o sinal de "+" para "-" na frente do LookAxisVector.Y.
+		float NewPitch = CurrentHeadRot.Pitch + (LookAxisVector.Y * LookSensitivity);
+		CurrentHeadRot.Pitch = FMath::Clamp(NewPitch, MaxLookDown, MaxLookUp);
+
+		// EIXO X (YAW): Olhar para os lados
+		float NewYaw = CurrentHeadRot.Yaw + (LookAxisVector.X * LookSensitivity);
+		CurrentHeadRot.Yaw = FMath::Clamp(NewYaw, -MaxLookLeftRight, MaxLookLeftRight);
+
+		// Aplica a rotação apenas na câmera!
+		CockpitCamera->SetRelativeRotation(CurrentHeadRot);
+        
+		return; // ABORTA A FUNÇÃO AQUI! A nave não vai receber o input.
+	}
+	
     if (MovementComponent)
     {
         float PitchInput = LookAxisVector.Y; 
@@ -200,3 +272,17 @@ void ASpaceShipPawn::OnPrecisionModeEnd(const FInputActionValue& Value)
 		MovementComponent->SetThrustPowerMode(EThrustPowerMode::Standard);
 	}
 }
+
+void ASpaceShipPawn::OnFreeLookStart(const FInputActionValue& Value)
+{
+	CurrentVisionMode = EPilotVisionMode::FreeLook;
+}
+
+void ASpaceShipPawn::OnFreeLookEnd(const FInputActionValue& Value)
+{
+	if (CurrentVisionMode == EPilotVisionMode::FreeLook)
+	{
+		CurrentVisionMode = EPilotVisionMode::Standard;
+	}
+}
+

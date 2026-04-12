@@ -53,6 +53,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Flight Dynamics")
 	float LinearDamping  = 0.0f;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Flight Dynamics")
+	float AngularDamping = 0.0f;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Flight Dynamics|Calibration")
 	float MouseSensitivity = 0.5f; 
 

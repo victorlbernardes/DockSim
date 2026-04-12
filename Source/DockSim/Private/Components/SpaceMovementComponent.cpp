@@ -70,6 +70,7 @@ void USpaceMovementComponent::BeginPlay()
 		UpdatedMesh->SetSimulatePhysics(true);
 		UpdatedMesh->SetEnableGravity(false); // Estamos no espaço!
 		UpdatedMesh->SetLinearDamping(LinearDamping);  // Zero atrito (inércia perfeita do GDD)
+		UpdatedMesh->SetAngularDamping(AngularDamping);
 	}
 	
 }
@@ -113,8 +114,10 @@ void USpaceMovementComponent::RequestRotation(FVector RotationInput)
 	   UpdatedMesh->GetRightVector()   * Pitch +  
 	   UpdatedMesh->GetUpVector()      * Yaw +    
 	   UpdatedMesh->GetForwardVector() * Roll;    
+	
+	float CurrentPrecisionScale = (CurrentPowerMode == EThrustPowerMode::Precision) ? PrecisionModeMultiplier : 1.0f;
 
-	FVector InputTorque = TorqueWorld * TorqueForce;
+	FVector InputTorque = TorqueWorld * TorqueForce * CurrentPrecisionScale;
 
 	// 3. A FÍSICA AVELUDADA (bAccelChange)
 	// O 'true' no final significa que estamos aplicando aceleração direta, ignorando as falhas da massa!

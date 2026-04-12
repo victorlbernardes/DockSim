@@ -3,12 +3,18 @@
 #include "Blueprint/UserWidget.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/TextBlock.h"
-#include "Components/ProgressBar.h"
 #include "Components/Image.h"
-#include "Components/SpaceMovementComponent.h"
 #include "ShipHUDWidget.generated.h"
 
 class USpaceTelemetryComponent;
+struct FSpaceTelemetryData; 
+
+UENUM(BlueprintType)
+enum class EShipMovementState : uint8
+{
+	Moving      UMETA(DisplayName = "Em Movimento (Derivando)"),
+	Stabilized  UMETA(DisplayName = "Inércia Zero (Travado)")
+};
 
 UCLASS()
 class DOCKSIM_API UShipHUDWidget : public UUserWidget
@@ -22,43 +28,22 @@ protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	
-	// ==========================================
-	// COMPONENTES VISUAIS (Frontend - BindWidget)
-	// ==========================================
-	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> TXT_Velocity;
-
+	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UProgressBar> PB_Fuel;
-
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> TXT_ThrustMode;
+	UImage* IMG_PitchLadder;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	UImage* IMG_Prograde;
 	
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	UImage* IMG_PitchLadder;
+	UPROPERTY(EditDefaultsOnly, Category = "Flight UI|Icons")
+	TObjectPtr<class UTexture2D> Tex_Prograde;
 
-	// Evento para o Artista chamar animações (ex: Tela piscando em vermelho)
-	UFUNCTION(BlueprintImplementableEvent, Category = "Flight UI")
-	void OnFuelEmptyAlarm();
+	UPROPERTY(EditDefaultsOnly, Category = "Flight UI|Icons")
+	TObjectPtr<class UTexture2D> Tex_Retrograde;
 
 private:
-	// ==========================================
-	// RECEPTORES DE EVENTOS (Delegates)
-	// ==========================================
-	
-	UFUNCTION()
-	void HandleThrustModeChanged(EThrustPowerMode NewMode);
-
-	UFUNCTION()
-	void HandleFuelEmpty();
-
-	// ==========================================
-	// ROTINAS CONTÍNUAS (Polling a 10Hz)
-	// ==========================================
 	
 	UFUNCTION()
 	void UpdateContinuousTelemetry();
@@ -70,4 +55,5 @@ private:
 	UMaterialInstanceDynamic* PitchLadderMID;
 
 	FTimerHandle TelemetryTimerHandle;
+	EShipMovementState CurrentMovementState = EShipMovementState::Stabilized;
 };

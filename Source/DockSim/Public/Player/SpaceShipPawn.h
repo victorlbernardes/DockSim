@@ -13,6 +13,14 @@ class USpaceMovementComponent;
 class USpaceResourceComponent;
 class UCFTVComponent;
 class USceneCaptureComponent2D;
+class UWidgetComponent;
+
+UENUM(BlueprintType)
+enum class EPilotVisionMode : uint8
+{
+	Standard  UMETA(DisplayName = "Visão Padrão (Relaxado)"),
+	FreeLook  UMETA(DisplayName = "Olhar ao Redor (Livre)")
+};
 
 UENUM(BlueprintType)
 enum class ERotationMode : uint8
@@ -34,6 +42,7 @@ public:
 	
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mesh", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UStaticMeshComponent> ShipMesh;
@@ -59,6 +68,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> PrecisionAction;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<class UInputAction> FreeLookAction;
+		
 	// ==========================================
 	// SISTEMA DE CFTV (Câmeras do Cockpit)
 	// ==========================================
@@ -77,6 +89,18 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
 	TObjectPtr<USceneCaptureComponent2D> Cam_Docking; 
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Pilot|Neck")
+	float MaxLookUp = 60.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Pilot|Neck")
+	float MaxLookDown = -50.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Pilot|Neck")
+	float MaxLookLeftRight = 110.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Pilot|Neck")
+	float LookSensitivity = 2.0f;
 		
 	void Move(const FInputActionValue& Value);
 	void OnThrottle(const FInputActionValue& Value);
@@ -85,6 +109,8 @@ protected:
 	void OnToggleRoll(const FInputActionValue& Value);
 	void OnPrecisionModeStart(const FInputActionValue& Value);
 	void OnPrecisionModeEnd(const FInputActionValue& Value);
+	void OnFreeLookStart(const FInputActionValue& Value);
+	void OnFreeLookEnd(const FInputActionValue& Value);
 	
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -99,7 +125,15 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Software", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCFTVComponent> CFTVSystem;
 	
+	// O componente físico da "tela"
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|UI", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UWidgetComponent> MainDisplayComponent;
+
+	// A classe do Widget que será renderizada (WBP_ShipHUD)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ship Systems|UI", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class UUserWidget> MainDisplayClass;
 	
+	EPilotVisionMode CurrentVisionMode = EPilotVisionMode::Standard;
 	ERotationMode CurrentRotState = ERotationMode::Locked;
 	
 };
