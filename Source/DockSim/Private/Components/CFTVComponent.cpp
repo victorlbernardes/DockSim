@@ -19,18 +19,26 @@ void UCFTVComponent::InitializeCameras(USceneCaptureComponent2D* Front, USceneCa
 	UpdateCameraPowerStates();
 }
 
+void UCFTVComponent::InitializeDockingCamera(USceneCaptureComponent2D* Docking)
+{
+	Cam_Docking = Docking;
+	UpdateDockingCameraPowerStates();
+}
+
 void UCFTVComponent::ToggleCameraMode()
 {
-	if (CurrentCameraMode == ECameraSystemMode::FlightMode)
+	if (CurrentCameraMode == ECameraSystemMode::Standby)
 	{
 		CurrentCameraMode = ECameraSystemMode::DockingMode;
+		UE_LOG(LogTemp, Warning, TEXT("CFTV: Monitor Ligado!"));
 	}
 	else
 	{
-		CurrentCameraMode = ECameraSystemMode::FlightMode;
+		CurrentCameraMode = ECameraSystemMode::Standby;
+		UE_LOG(LogTemp, Warning, TEXT("CFTV: Monitor Desligado!"));
 	}
 
-	UpdateCameraPowerStates();
+	UpdateDockingCameraPowerStates();
 }
 
 void UCFTVComponent::UpdateCameraPowerStates()
@@ -38,7 +46,7 @@ void UCFTVComponent::UpdateCameraPowerStates()
 	// Medida de segurança: Se as câmeras não foram inicializadas, aborta para não dar Crash.
 	if (!Cam_Front || !Cam_Rear || !Cam_Left || !Cam_Right || !Cam_Docking) return;
 
-	if (CurrentCameraMode == ECameraSystemMode::FlightMode)
+	if (CurrentCameraMode == ECameraSystemMode::Standby)
 	{
 		// Modo Voo (Navegação)
 		Cam_Front->bCaptureEveryFrame = true;
@@ -56,6 +64,20 @@ void UCFTVComponent::UpdateCameraPowerStates()
 		Cam_Left->bCaptureEveryFrame  = false;
 		Cam_Right->bCaptureEveryFrame = false;
 
+		Cam_Docking->bCaptureEveryFrame = true;
+	}
+}
+
+void UCFTVComponent::UpdateDockingCameraPowerStates()
+{
+	if (!Cam_Docking) return;
+
+	if (CurrentCameraMode == ECameraSystemMode::Standby)
+	{
+		Cam_Docking->bCaptureEveryFrame = false;
+	}
+	else
+	{
 		Cam_Docking->bCaptureEveryFrame = true;
 	}
 }

@@ -29,13 +29,19 @@ protected:
 	virtual void NativeDestruct() override;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> TXT_Velocity;
+	TObjectPtr<UTextBlock> TXT_VelocityFWD;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TXT_VelocityLAT;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TXT_VelocityVERT;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	UImage* IMG_PitchLadder;
+	TObjectPtr<UImage> IMG_PitchLadder;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	UImage* IMG_Prograde;
+	TObjectPtr<UImage> IMG_Prograde;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Flight UI|Icons")
 	TObjectPtr<class UTexture2D> Tex_Prograde;
@@ -52,8 +58,12 @@ private:
 	TObjectPtr<USpaceTelemetryComponent> CachedTelemetryComp;
 	
 	UPROPERTY()
-	UMaterialInstanceDynamic* PitchLadderMID;
+	TObjectPtr<UMaterialInstanceDynamic> PitchLadderMID;
 
 	FTimerHandle TelemetryTimerHandle;
 	EShipMovementState CurrentMovementState = EShipMovementState::Stabilized;
+	
+	float LastRoll = 0.0f;
+	float AccumulatedRoll = 0.0f;
+	float SmoothedRoll = 0.0f;
 };

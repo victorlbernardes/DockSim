@@ -70,22 +70,25 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> FreeLookAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<class UInputAction> ToggleCameraAction;
 		
 	// ==========================================
 	// SISTEMA DE CFTV (Câmeras do Cockpit)
 	// ==========================================
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
-	TObjectPtr<USceneCaptureComponent2D> Cam_Front;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
-	TObjectPtr<USceneCaptureComponent2D> Cam_Left;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
-	TObjectPtr<USceneCaptureComponent2D> Cam_Right;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
-	TObjectPtr<USceneCaptureComponent2D> Cam_Rear;
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
+	// TObjectPtr<USceneCaptureComponent2D> Cam_Front;
+	//
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
+	// TObjectPtr<USceneCaptureComponent2D> Cam_Left;
+	//
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
+	// TObjectPtr<USceneCaptureComponent2D> Cam_Right;
+	//
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
+	// TObjectPtr<USceneCaptureComponent2D> Cam_Rear;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
 	TObjectPtr<USceneCaptureComponent2D> Cam_Docking; 
@@ -111,6 +114,7 @@ protected:
 	void OnPrecisionModeEnd(const FInputActionValue& Value);
 	void OnFreeLookStart(const FInputActionValue& Value);
 	void OnFreeLookEnd(const FInputActionValue& Value);
+	void OnToggleCameraPressed();
 	
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -127,6 +131,9 @@ private:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UWidgetComponent> LeftDisplayComp;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UWidgetComponent> RightDisplayComp;
 	
 	EPilotVisionMode CurrentVisionMode = EPilotVisionMode::Standard;
 	ERotationMode CurrentRotState = ERotationMode::Locked;

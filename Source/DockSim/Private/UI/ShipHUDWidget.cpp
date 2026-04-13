@@ -17,13 +17,24 @@ void UShipHUDWidget::NativeConstruct()
 		if (CachedTelemetryComp)
 		{
 			// Em vez de NativeTick, chamamos a função a cada 0.1 segundos (10 FPS)
-			GetWorld()->GetTimerManager().SetTimer(TelemetryTimerHandle, this, &UShipHUDWidget::UpdateContinuousTelemetry, 0.1f, true);
+			if (UWorld* World = GetWorld())
+			{
+				World->GetTimerManager().SetTimer(TelemetryTimerHandle, this, &UShipHUDWidget::UpdateContinuousTelemetry, 0.016f, true);
+			}
 		}
 		
 		if (IMG_PitchLadder)
 		{
-			PitchLadderMID = IMG_PitchLadder->GetDynamicMaterial();
+			UObject* Resource = IMG_PitchLadder->GetBrush().GetResourceObject();
+			UMaterialInterface* BaseMat = Cast<UMaterialInterface>(Resource);
+
+			if (BaseMat)
+			{
+				PitchLadderMID = UMaterialInstanceDynamic::Create(BaseMat, this);
+				IMG_PitchLadder->SetBrushFromMaterial(PitchLadderMID);
+			}
 		}
+		
 	}
 }
 
@@ -46,28 +57,45 @@ void UShipHUDWidget::UpdateContinuousTelemetry()
 	// 2. MÁQUINA DE ESTADOS: Feedback Minimalista
 	if (NewState != CurrentMovementState)
 	{
+		FSlateColor TargetColor = (NewState == EShipMovementState::Stabilized) ? FSlateColor(FLinearColor::Green) : FSlateColor(FLinearColor::White);
+
+		if (TXT_VelocityFWD) TXT_VelocityFWD->SetColorAndOpacity(TargetColor);
+		if (TXT_VelocityLAT) TXT_VelocityLAT->SetColorAndOpacity(TargetColor);
+		if (TXT_VelocityVERT) TXT_VelocityVERT->SetColorAndOpacity(TargetColor);
+
 		if (NewState == EShipMovementState::Stabilized)
 		{
-			// NAVE PAROU: Texto Verde e esconde o Prograde
-			if (TXT_Velocity) TXT_Velocity->SetColorAndOpacity(FSlateColor(FLinearColor::Green));
 			if (IMG_Prograde) IMG_Prograde->SetVisibility(ESlateVisibility::Hidden);
 		}
-		else if (NewState == EShipMovementState::Moving)
+		else
 		{
-			// NAVE MOVENDO: Texto Branco e volta a mostrar o Prograde
-			if (TXT_Velocity) TXT_Velocity->SetColorAndOpacity(FSlateColor(FLinearColor::White));
 			if (IMG_Prograde) IMG_Prograde->SetVisibility(ESlateVisibility::Visible);
 		}
+		
 		CurrentMovementState = NewState;
 	}
 
-	// 3. ATUALIZA OS DADOS TODO FRAME
+	// 3. ATUALIZA OS VETORES NA TELA
 	
-	// A. Texto da Velocidade
-	if (TXT_Velocity)
+	// FWD: Forward (Positivo = Frente / Negativo = Ré)
+	if (TXT_VelocityFWD)
 	{
-		FString VelString = FString::Printf(TEXT("%.1f m/s"), Data.VelForward);
-		TXT_Velocity->SetText(FText::FromString(VelString));
+		FString Str = FString::Printf(TEXT("FWD: %5.1f"), Data.VelForward);
+		TXT_VelocityFWD->SetText(FText::FromString(Str));
+	}
+
+	// LAT: Lateral (Positivo = Direita / Negativo = Esquerda)
+	if (TXT_VelocityLAT)
+	{
+		FString Str = FString::Printf(TEXT("LAT: %5.1f"), Data.VelRight);
+		TXT_VelocityLAT->SetText(FText::FromString(Str));
+	}
+
+	// VERT: Vertical (Positivo = Cima / Negativo = Baixo)
+	if (TXT_VelocityVERT)
+	{
+		FString Str = FString::Printf(TEXT("VRT: %5.1f"), Data.VelUp);
+		TXT_VelocityVERT->SetText(FText::FromString(Str));
 	}
 	
 	// B. Ícone Prograde / Retrograde (Só calcula se estiver se movendo)
@@ -92,10 +120,22 @@ void UShipHUDWidget::UpdateContinuousTelemetry()
 	// C. Pitch Ladder
 	if (PitchLadderMID)
 	{
-		float NormalizedRoll = -Data.Roll / 360.0f; 
-		float NormalizedPitch = Data.Pitch / 90.0f; 
+		float NormalizedPitch = FMath::Clamp(Data.Pitch / 90.0f, -1.0f, 1.0f);
+		float WrappedRoll = FMath::UnwindDegrees(Data.Roll);
+		float TargetRoll = -WrappedRoll / 180.0f;
 
-		PitchLadderMID->SetScalarParameterValue(FName("RollAngle"), NormalizedRoll);
+		// --- SMOOTH (opcional mas recomendado) ---
+		if (UWorld* World = GetWorld())
+		{
+			float DeltaTime = World->GetDeltaSeconds();
+			SmoothedRoll = FMath::FInterpTo(SmoothedRoll, TargetRoll, DeltaTime, 8.0f);
+		}
+		else
+		{
+			SmoothedRoll = TargetRoll;
+		}
+
+		PitchLadderMID->SetScalarParameterValue(FName("RollAngle"), SmoothedRoll);
 		PitchLadderMID->SetScalarParameterValue(FName("PitchOffset"), NormalizedPitch);
 	}
 }

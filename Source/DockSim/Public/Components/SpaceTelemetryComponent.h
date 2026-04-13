@@ -21,11 +21,7 @@ struct FSpaceTelemetryData
 	UPROPERTY(BlueprintReadOnly) float Pitch = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float Yaw   = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float Roll  = 0.0f;
-
-	// Sistemas e Recursos
-	UPROPERTY(BlueprintReadOnly) float FuelPercent = 1.0f;
     
-	// REATORADO: Usando o Enum real do sistema! Clean Code puríssimo.
 	UPROPERTY(BlueprintReadOnly) EThrustPowerMode ThrustMode = EThrustPowerMode::Standard;
 };
 

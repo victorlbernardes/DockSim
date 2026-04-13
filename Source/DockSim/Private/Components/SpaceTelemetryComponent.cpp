@@ -36,10 +36,7 @@ FSpaceTelemetryData USpaceTelemetryComponent::GetLatestTelemetry()
 	AActor* Owner = GetOwner();
 	UPrimitiveComponent* RootMesh = Cast<UPrimitiveComponent>(Owner->GetRootComponent());
 
-	// 1. Encontra o Músculo da nave para ler o estado do motor
 	USpaceMovementComponent* MovementComp = Owner->FindComponentByClass<USpaceMovementComponent>();
-	USpaceResourceComponent* ResourceComp = Owner->FindComponentByClass<USpaceResourceComponent>();
-
 	if (RootMesh)
 	{
 		FVector GlobalVelocity = RootMesh->GetPhysicsLinearVelocity();
@@ -60,16 +57,6 @@ FSpaceTelemetryData USpaceTelemetryComponent::GetLatestTelemetry()
 	if (MovementComp)
 	{
 		Data.ThrustMode = MovementComp->GetCurrentPowerMode();
-	}
-
-	// 3. Combustível
-	if (ResourceComp)
-	{
-		Data.FuelPercent = ResourceComp->GetFuelPercent();
-	}
-	else
-	{
-		Data.FuelPercent = 0.0f; // Falha segura caso a nave não tenha tanque
 	}
 	return Data;
 }

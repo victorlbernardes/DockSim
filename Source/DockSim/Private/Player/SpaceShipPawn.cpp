@@ -31,30 +31,40 @@ ASpaceShipPawn::ASpaceShipPawn()
 	CFTVSystem = CreateDefaultSubobject<UCFTVComponent>(TEXT("CFTV_System"));
 	
 	//Criação Física das Câmeras (Todas nascem DESLIGADAS)
-	Cam_Front = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Front"));
-	Cam_Front->SetupAttachment(RootComponent);
-	Cam_Front->bCaptureEveryFrame = false; 
-
-	Cam_Rear = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Rear"));
-	Cam_Rear->SetupAttachment(RootComponent);
-	Cam_Rear->bCaptureEveryFrame = false;
-
-	Cam_Left = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Left"));
-	Cam_Left->SetupAttachment(RootComponent);
-	Cam_Left->bCaptureEveryFrame = false;
-
-	Cam_Right = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Right"));
-	Cam_Right->SetupAttachment(RootComponent);
-	Cam_Right->bCaptureEveryFrame = false;
+	// Cam_Front = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Front"));
+	// Cam_Front->SetupAttachment(RootComponent);
+	// Cam_Front->bCaptureEveryFrame = false; 
+	//
+	// Cam_Rear = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Rear"));
+	// Cam_Rear->SetupAttachment(RootComponent);
+	// Cam_Rear->bCaptureEveryFrame = false;
+	//
+	// Cam_Left = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Left"));
+	// Cam_Left->SetupAttachment(RootComponent);
+	// Cam_Left->bCaptureEveryFrame = false;
+	//
+	// Cam_Right = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Right"));
+	// Cam_Right->SetupAttachment(RootComponent);
+	// Cam_Right->bCaptureEveryFrame = false;
 
 	Cam_Docking = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Docking"));
 	Cam_Docking->SetupAttachment(RootComponent);
 	Cam_Docking->bCaptureEveryFrame = false;
+	Cam_Docking->bCaptureOnMovement = false;
+	if (CFTVSystem && Cam_Docking)
+	{
+		CFTVSystem->InitializeDockingCamera(Cam_Docking);
+	}
 	
 	LeftDisplayComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("LeftDisplay"));
 	LeftDisplayComp->SetupAttachment(ShipMesh); 
 	LeftDisplayComp->SetWidgetSpace(EWidgetSpace::World);
 	LeftDisplayComp->SetDrawSize(FVector2D(512.0f, 512.0f));
+	
+	RightDisplayComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("RightDisplay"));
+	RightDisplayComp->SetupAttachment(ShipMesh); 
+	RightDisplayComp->SetWidgetSpace(EWidgetSpace::World);
+	RightDisplayComp->SetDrawSize(FVector2D(512.0f, 512.0f));
 
 }
 
@@ -63,7 +73,8 @@ void ASpaceShipPawn::BeginPlay()
 	Super::BeginPlay();
 	if (CFTVSystem)
 	{
-		CFTVSystem->InitializeCameras(Cam_Front, Cam_Rear, Cam_Left, Cam_Right, Cam_Docking);
+		// CFTVSystem->InitializeCameras(Cam_Front, Cam_Rear, Cam_Left, Cam_Right, Cam_Docking);
+		CFTVSystem->InitializeDockingCamera(Cam_Docking);
 	}
 
 }
@@ -114,7 +125,6 @@ void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 		if (ToggleYawAction)
 		{
 			EnhancedInputComponent->BindAction(ToggleYawAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnToggleYaw);
-			
 		}
 		if (ToggleRollAction)
 		{
@@ -131,6 +141,10 @@ void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 			EnhancedInputComponent->BindAction(FreeLookAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnFreeLookStart);
 			EnhancedInputComponent->BindAction(FreeLookAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::OnFreeLookEnd);
 			EnhancedInputComponent->BindAction(FreeLookAction, ETriggerEvent::Canceled, this, &ASpaceShipPawn::OnFreeLookEnd);
+		}
+		if (ToggleCameraAction)
+		{
+			EnhancedInputComponent->BindAction(ToggleCameraAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnToggleCameraPressed);
 		}
 	}
 }
@@ -271,6 +285,14 @@ void ASpaceShipPawn::OnFreeLookEnd(const FInputActionValue& Value)
 	if (CurrentVisionMode == EPilotVisionMode::FreeLook)
 	{
 		CurrentVisionMode = EPilotVisionMode::Standard;
+	}
+}
+
+void ASpaceShipPawn::OnToggleCameraPressed()
+{
+	if (CFTVSystem)
+	{
+		CFTVSystem->ToggleCameraMode();
 	}
 }
 
