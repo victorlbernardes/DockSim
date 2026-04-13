@@ -8,7 +8,7 @@
 #include "Components/SpaceResourceComponent.h"
 #include "Components/SpaceTelemetryComponent.h"
 #include "Components/WidgetComponent.h"
-#include "UI/ShipHUDWidget.h"
+
 
 ASpaceShipPawn::ASpaceShipPawn()
 {
@@ -24,7 +24,6 @@ ASpaceShipPawn::ASpaceShipPawn()
     
 	// 4. Anexamos (colamos) a câmera na malha. Se a nave girar, a câmera gira junto!
 	CockpitCamera->SetupAttachment(ShipMesh);
-	CockpitCamera->PostProcessSettings.MotionBlurAmount = 0.0f;
 	
 	MovementComponent = CreateDefaultSubobject<USpaceMovementComponent>(TEXT("MovementComponent"));
 	TelemetryComponent = CreateDefaultSubobject<USpaceTelemetryComponent>(TEXT("TelemetryComponent"));
@@ -52,17 +51,11 @@ ASpaceShipPawn::ASpaceShipPawn()
 	Cam_Docking->SetupAttachment(RootComponent);
 	Cam_Docking->bCaptureEveryFrame = false;
 	
-	MainDisplayComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("MainDisplay"));
+	LeftDisplayComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("LeftDisplay"));
+	LeftDisplayComp->SetupAttachment(ShipMesh); 
+	LeftDisplayComp->SetWidgetSpace(EWidgetSpace::World);
+	LeftDisplayComp->SetDrawSize(FVector2D(512.0f, 512.0f));
 
-	// 2. Anexamos ao ShipMesh (igual você fez com a câmera)
-	MainDisplayComponent->SetupAttachment(ShipMesh);
-
-	// 3. Configurações Hardcore do Componente
-	MainDisplayComponent->SetWidgetSpace(EWidgetSpace::World); // Essencial para ser 3D
-	MainDisplayComponent->SetDrawSize(FVector2D(4096, 2048 )); // Resolução interna da tela
-	MainDisplayComponent->SetVisibility(true);
-	MainDisplayComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Evita que a tela bloqueie tiros ou física
-	MainDisplayComponent->SetRelativeRotation(FRotator(0.f, 180.f, 0.f));
 }
 
 void ASpaceShipPawn::BeginPlay()
@@ -72,12 +65,7 @@ void ASpaceShipPawn::BeginPlay()
 	{
 		CFTVSystem->InitializeCameras(Cam_Front, Cam_Rear, Cam_Left, Cam_Right, Cam_Docking);
 	}
-	
-	if (MainDisplayComponent && MainDisplayClass)
-	{
-		MainDisplayComponent->SetWidgetClass(MainDisplayClass);
-		MainDisplayComponent->InitWidget();
-	}
+
 }
 
 void ASpaceShipPawn::Tick(float DeltaTime)

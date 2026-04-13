@@ -26,11 +26,26 @@ bool USpaceResourceComponent::ConsumeFuel(float Amount)
 {
 	if (!HasFuel()) return false;
 
-	// Subtrai o combustível e não deixa cair abaixo de zero
 	CurrentFuel = FMath::Clamp(CurrentFuel - Amount, 0.0f, MaxFuel);
+
+	// 1. Descobre qual DEVERIA ser o status agora
+	EFuelStatus CalculatedStatus = EFuelStatus::Normal;
+	
 	if (CurrentFuel <= 0.0f)
 	{
-		OnFuelEmpty.Broadcast();
+		CalculatedStatus = EFuelStatus::Empty;
 	}
+	else if (GetFuelPercent() <= LowFuelThreshold)
+	{
+		CalculatedStatus = EFuelStatus::LowFuel;
+	}
+
+	if (CalculatedStatus != CurrentFuelStatus)
+	{
+		CurrentFuelStatus = CalculatedStatus;
+		
+		OnFuelStatusChanged.Broadcast(CurrentFuelStatus); 
+	}
+	
 	return true;
 }

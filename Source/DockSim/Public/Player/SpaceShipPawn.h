@@ -125,13 +125,8 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Software", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCFTVComponent> CFTVSystem;
 	
-	// O componente físico da "tela"
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|UI", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UWidgetComponent> MainDisplayComponent;
-
-	// A classe do Widget que será renderizada (WBP_ShipHUD)
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ship Systems|UI", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<class UUserWidget> MainDisplayClass;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UWidgetComponent> LeftDisplayComp;
 	
 	EPilotVisionMode CurrentVisionMode = EPilotVisionMode::Standard;
 	ERotationMode CurrentRotState = ERotationMode::Locked;

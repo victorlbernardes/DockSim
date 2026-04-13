@@ -3,7 +3,17 @@
 #include "Components/ActorComponent.h"
 #include "SpaceResourceComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFuelEmpty);
+// 1. DECLARAÇÃO DO ENUM DE STATUS DO COMBUSTÍVEL
+UENUM(BlueprintType)
+enum class EFuelStatus : uint8
+{
+	Normal      UMETA(DisplayName = "Normal"),
+	LowFuel     UMETA(DisplayName = "Reserva Baixa (Aviso)"),
+	Empty       UMETA(DisplayName = "Tanque Vazio")
+};
+
+// 2. O NOVO DELEGATE (Agora ele envia o Enum junto com o aviso!)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFuelStatusChanged, EFuelStatus, NewStatus);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DOCKSIM_API USpaceResourceComponent : public UActorComponent
@@ -22,7 +32,7 @@ public:
 	bool ConsumeFuel(float Amount);
 	
 	UPROPERTY(BlueprintAssignable, Category = "Ship Resources|Events")
-	FOnFuelEmpty OnFuelEmpty;
+	FOnFuelStatusChanged OnFuelStatusChanged;
 
 protected:
 	virtual void BeginPlay() override;
@@ -30,7 +40,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Resources|Fuel")
 	float MaxFuel = 100.0f;
 
-	// Não queremos que ninguem edite isso direto no Blueprint, apenas leia
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Resources|Fuel")
+	float LowFuelThreshold = 0.15f; 
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Resources|Fuel")
 	float CurrentFuel = 0.0f;
+
+private:
+	EFuelStatus CurrentFuelStatus = EFuelStatus::Normal;
 };
