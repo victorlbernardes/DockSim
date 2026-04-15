@@ -33,6 +33,8 @@ public:
 	// Para o Widget do painel saber qual tela mostrar (Standby ou Imagem)
 	UFUNCTION(BlueprintPure, Category = "Ship Systems|CCTV")
 	ECameraSystemMode GetCurrentMode() const { return CurrentCameraMode; }
+	
+	void InitializeDockingScreen(UMeshComponent* ScreenMesh);
 
 private:
 	// Memória Interna do Estado
@@ -44,6 +46,8 @@ private:
 	UPROPERTY() TObjectPtr<USceneCaptureComponent2D> Cam_Left;
 	UPROPERTY() TObjectPtr<USceneCaptureComponent2D> Cam_Right;
 	UPROPERTY() TObjectPtr<USceneCaptureComponent2D> Cam_Docking;
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> DockingMaterial;
 
 	// O cérebro que distribui a energia
 	void UpdateCameraPowerStates();

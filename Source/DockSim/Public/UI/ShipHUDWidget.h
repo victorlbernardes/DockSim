@@ -41,6 +41,9 @@ protected:
 	TObjectPtr<UTextBlock> TXT_VelocityVERT;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TXT_EngineScale;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UImage> IMG_Prograde;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Flight UI|Icons")

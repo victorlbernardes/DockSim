@@ -17,6 +17,13 @@ class USceneCaptureComponent2D;
 class UWidgetComponent;
 class UWidgetSwitcher;
 
+UENUM(BlueprintType)
+enum class EShipFlightState : uint8
+{
+	FreeFlying  UMETA(DisplayName = "Voo Livre"),
+	Docked      UMETA(DisplayName = "Atracado / Travado")
+};
+
 // O estado do sinal de rádio da estação
 UENUM(BlueprintType)
 enum class ESignalStatus : uint8
@@ -103,7 +110,10 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> ToggleCameraAction;
-		
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<class UInputAction> DockAction;
+	
 	// ==========================================
 	// SISTEMA DE CFTV (Câmeras do Cockpit)
 	// ==========================================
@@ -149,6 +159,8 @@ protected:
 	void OnFreeLookStart(const FInputActionValue& Value);
 	void OnFreeLookEnd(const FInputActionValue& Value);
 	void OnToggleCameraPressed();
+	void OnDockButtonPressed(const FInputActionValue& Value);
+	
 	
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
@@ -169,10 +181,14 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UWidgetComponent> RightDisplayComp;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cockpit", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UStaticMeshComponent> DockingScreenMesh;
+	
 	EPilotVisionMode CurrentVisionMode = EPilotVisionMode::Standard;
 	ERotationMode CurrentRotState = ERotationMode::Locked;
 	ESignalStatus CurrentSignalStatus = ESignalStatus::Lost;
 	EDockingMonitorState CurrentMonitorState = EDockingMonitorState::Offline;
+	EShipFlightState CurrentFlightState = EShipFlightState::FreeFlying;
 	void SetMonitorState(EDockingMonitorState NewState);
 	
 };

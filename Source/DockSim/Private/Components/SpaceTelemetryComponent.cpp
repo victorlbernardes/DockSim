@@ -1,6 +1,5 @@
 ﻿#include "Components/SpaceTelemetryComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Components/SpaceResourceComponent.h"
 #include "DockingPort/SpaceDockingPort.h"
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
@@ -23,39 +22,51 @@ void USpaceTelemetryComponent::BeginPlay()
 void USpaceTelemetryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	// 1. Busca a Estação no mapa (Excelente para testes/MVP)
+
 	AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
 	ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
 
 	if (TargetPort && TargetPort->DockingAnchor)
 	{
-		// 2. Calcula a Distância (Convertendo unidades da Unreal de cm para metros)
 		FVector ShipLoc = GetOwner()->GetActorLocation();
 		FVector PortLoc = TargetPort->DockingAnchor->GetComponentLocation();
+		FVector PortForward = TargetPort->DockingAnchor->GetForwardVector();
+		FVector ShipForward = GetOwner()->GetActorForwardVector();
+
+		// 1. DISTÂNCIA ESCALAR (Unidade: Metros)
 		float DistanceMeters = FVector::Dist(ShipLoc, PortLoc) / 100.0f;
 
-		// 3. Calcula o Ângulo/Alinhamento (Dot Product)
-		FVector ShipForward = GetOwner()->GetActorForwardVector();
-		// Queremos que a nave olhe exatamente na direção oposta da face do porto
-		FVector TargetFacing = -TargetPort->DockingAnchor->GetForwardVector(); 
-		
-		float AlignmentDot = FVector::DotProduct(ShipForward, TargetFacing);
-		// Converte o Dot Product (-1 a 1) em Porcentagem (0% a 100%)
-		float AlignmentPercent = FMath::Clamp(AlignmentDot * 100.0f, 0.0f, 100.0f);
+		// 2. ALINHAMENTO DE ROTAÇÃO (Pitch/Yaw)
+		// Verifica se o nariz da nave está paralelo ao eixo do porto
+		// Usamos -PortForward porque a nave deve olhar CONTRA o porto para acoplar
+		float RotDot = FVector::DotProduct(ShipForward, -PortForward);
+		float RotPercent = FMath::Clamp(RotDot * 100.0f, 0.0f, 100.0f);
 
-		// 4. Exibe os Logs na Tela e no Output Log
+		// 3. ALINHAMENTO DE TRANSLAÇÃO (O "Corredor")
+		// Criamos um vetor que vai do porto até à nave e normalizamos
+		FVector DirToShip = (ShipLoc - PortLoc).GetSafeNormal();
+		
+		// Comparamos: A nave está no "trilho" que sai do porto?
+		// Se a nave estiver exatamente na frente, DirToShip será igual ao PortForward (Dot = 1.0)
+		float PathDot = FVector::DotProduct(PortForward, DirToShip);
+		float PathPercent = FMath::Clamp(PathDot * 100.0f, 0.0f, 100.0f);
+
+		// 4. PRECISÃO TOTAL (Cálculo Punitivo)
+		// Multiplicamos os dois. Se um estiver em 0%, o total é 0%. 
+		// Isso obriga o jogador a ser perfeito em ambos.
+		float TotalAlignment = (RotPercent * PathPercent) / 100.0f;
+
+		// 5. FEEDBACK VISUAL (Logs)
 		if (GEngine)
 		{
-			FString DebugMsg = FString::Printf(TEXT("ALVO: %.2fm | ALINHAMENTO: %.1f%%"), DistanceMeters, AlignmentPercent);
+			FColor DisplayColor = (TotalAlignment > 95.0f) ? FColor::Cyan : FColor::Yellow;
 			
-			// Usamos a 'Key 2' e tempo '0.0f' para a mensagem atualizar no mesmo lugar em vez de flodar a tela
-			GEngine->AddOnScreenDebugMessage(2, 0.0f, FColor::Yellow, DebugMsg);
+			FString DebugMsg = FString::Printf(TEXT("DIST: %.2fm | ROTAÇÃO: %.1f%% | CORREDOR: %.1f%% | TOTAL: %.1f%%"), 
+				DistanceMeters, RotPercent, PathPercent, TotalAlignment);
+			
+			GEngine->AddOnScreenDebugMessage(2, 0.0f, DisplayColor, DebugMsg);
 		}
-		
-		// Descomente a linha abaixo se quiser que flode a janela de Output Log também
-		// UE_LOG(LogTemp, Log, TEXT("DOCKING: Dist: %.2fm | Alinhamento: %.1f%%"), DistanceMeters, AlignmentPercent);
 	}
-	
 }
 
 float USpaceTelemetryComponent::ApplyPsychologicalZero(float Value) 
@@ -91,6 +102,38 @@ FSpaceTelemetryData USpaceTelemetryComponent::GetLatestTelemetry()
 	if (MovementComp)
 	{
 		Data.ThrustMode = MovementComp->GetCurrentPowerMode();
+		Data.CurrentEngineScale = MovementComp->GetMasterPowerScale();
 	}
 	return Data;
+}
+
+bool USpaceTelemetryComponent::IsReadyForHardLock() const
+{
+	AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
+	ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
+
+	if (!TargetPort || !TargetPort->DockingAnchor) return false;
+
+	FVector ShipLoc = GetOwner()->GetActorLocation();
+	FVector PortLoc = TargetPort->DockingAnchor->GetComponentLocation();
+	FVector PortForward = TargetPort->DockingAnchor->GetForwardVector();
+	FVector ShipForward = GetOwner()->GetActorForwardVector();
+
+	// Recalcula os valores cruciais no exato milissegundo do aperto do botão
+	float DistanceMeters = FVector::Dist(ShipLoc, PortLoc) / 100.0f;
+	float RotDot = FVector::DotProduct(ShipForward, -PortForward);
+	float RotPercent = FMath::Clamp(RotDot * 100.0f, 0.0f, 100.0f);
+	FVector DirToShip = (ShipLoc - PortLoc).GetSafeNormal();
+	float PathDot = FVector::DotProduct(PortForward, DirToShip);
+	float PathPercent = FMath::Clamp(PathDot * 100.0f, 0.0f, 100.0f);
+	float TotalAlignment = (RotPercent * PathPercent) / 100.0f;
+
+	// A REGRA DE OURO DO SEU JOGO (Ajuste a dificuldade aqui)
+	// Exemplo: Menos de 2.5 metros e Mais de 95% de alinhamento
+	if (DistanceMeters <= 10.0f && TotalAlignment >= 95.0f)
+	{
+		return true;
+	}
+
+	return false;
 }

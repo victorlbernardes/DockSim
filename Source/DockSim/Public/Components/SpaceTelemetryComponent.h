@@ -12,6 +12,9 @@ struct FSpaceTelemetryData
 {
 	GENERATED_BODY()
 
+	// Engine Scale
+	UPROPERTY(BlueprintReadOnly) float CurrentEngineScale = 0.0f;
+	
 	// Velocidades Locais (m/s)
 	UPROPERTY(BlueprintReadOnly) float VelForward = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float VelRight   = 0.0f;
@@ -48,6 +51,7 @@ public:
 	float TotalSpeed;
 	
 	FSpaceTelemetryData GetLatestTelemetry();
+	bool IsReadyForHardLock() const;
 	float ApplyPsychologicalZero(float Value) ;
 protected:
 	virtual void BeginPlay() override;

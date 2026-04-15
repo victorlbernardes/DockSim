@@ -6,6 +6,7 @@
 
 class UBoxComponent;
 class UStaticMeshComponent;
+class UPointLightComponent;
 
 UCLASS()
 class DOCKSIM_API ASpaceDockingPort : public AActor
@@ -22,6 +23,9 @@ public:
 	// O Volume invisível que detecta se a nave está perto o suficiente para ligar os sensores
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
 	TObjectPtr<UBoxComponent> CaptureArea;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
+	TObjectPtr<UPointLightComponent> BeaconLight;
 
 protected:
 	virtual void BeginPlay() override;
@@ -40,5 +44,10 @@ protected:
 
 	UFUNCTION()
 	void OnCaptureAreaEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+private:
+	FTimerHandle BlinkTimerHandle;
+
+	void ToggleBeaconLight();
 	
 };

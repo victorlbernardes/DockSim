@@ -25,6 +25,13 @@ void UCFTVComponent::InitializeDockingCamera(USceneCaptureComponent2D* Docking)
 	UpdateDockingCameraPowerStates();
 }
 
+void UCFTVComponent::InitializeDockingScreen(UMeshComponent* ScreenMesh)
+{
+	if (!ScreenMesh) return;
+
+	DockingMaterial = ScreenMesh->CreateDynamicMaterialInstance(0);
+}
+
 void UCFTVComponent::ToggleCameraMode()
 {
 	if (CurrentCameraMode == ECameraSystemMode::Standby)
@@ -75,9 +82,19 @@ void UCFTVComponent::UpdateDockingCameraPowerStates()
 	if (CurrentCameraMode == ECameraSystemMode::Standby)
 	{
 		Cam_Docking->bCaptureEveryFrame = false;
+
+		if (DockingMaterial)
+		{
+			DockingMaterial->SetScalarParameterValue("CameraOn", 0.0f);
+		}
 	}
 	else
 	{
 		Cam_Docking->bCaptureEveryFrame = true;
+
+		if (DockingMaterial)
+		{
+			DockingMaterial->SetScalarParameterValue("CameraOn", 1.0f);
+		}
 	}
 }

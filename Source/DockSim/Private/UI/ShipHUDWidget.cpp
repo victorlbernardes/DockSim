@@ -87,6 +87,13 @@ void UShipHUDWidget::UpdateContinuousTelemetry()
 		TXT_VelocityVERT->SetText(FText::FromString(Str));
 	}
 	
+	// CurrentEngineScale: Potência do motor
+	if (TXT_EngineScale)
+	{
+		FString Str = FString::Printf(TEXT("%5.1f %%"), Data.CurrentEngineScale * 100);
+		TXT_EngineScale->SetText(FText::FromString(Str));
+	}
+	
 	// B. Ícone Prograde / Retrograde (Só calcula se estiver se movendo)
 	if (IMG_Prograde && CurrentMovementState == EShipMovementState::Moving)
 	{
@@ -109,10 +116,8 @@ void UShipHUDWidget::UpdateContinuousTelemetry()
 
 void UShipHUDWidget::UpdateSignalAlert(ESignalStatus NewStatus)
 {
-	UE_LOG(LogTemp, Warning, TEXT("UpdateSignalAlert"));
 	if (!AlertSwitcher) return;
 
-	UE_LOG(LogTemp, Warning, TEXT("AlertSwitcher existe"));
 	switch (NewStatus)
 	{
 	case ESignalStatus::Lost:

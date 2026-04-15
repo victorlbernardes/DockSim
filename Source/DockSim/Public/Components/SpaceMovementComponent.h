@@ -35,6 +35,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Flight Dynamics")
 	EThrustPowerMode GetCurrentPowerMode() const { return CurrentPowerMode; }
 	
+	UFUNCTION(BlueprintCallable, Category = "Flight Dynamics")
+	float GetMasterPowerScale() const { return MasterPowerScale; }
+	
 	UPROPERTY(BlueprintAssignable, Category = "Ship|Events")
 	FOnThrustModeChanged OnThrustModeChanged;
 	
