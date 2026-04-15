@@ -4,6 +4,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
+#include "Player/SpaceShipPawn.h"
 #include "ShipHUDWidget.generated.h"
 
 class USpaceTelemetryComponent;
@@ -23,6 +24,8 @@ class DOCKSIM_API UShipHUDWidget : public UUserWidget
 public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Flight UI")
 	void OnTelemetryUpdated(const FSpaceTelemetryData& TelemetryData);
+	UFUNCTION(BlueprintCallable, Category = "Flight UI|Docking")
+	void UpdateSignalAlert(ESignalStatus NewStatus);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -38,9 +41,6 @@ protected:
 	TObjectPtr<UTextBlock> TXT_VelocityVERT;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UImage> IMG_PitchLadder;
-	
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UImage> IMG_Prograde;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Flight UI|Icons")
@@ -48,6 +48,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Flight UI|Icons")
 	TObjectPtr<class UTexture2D> Tex_Retrograde;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<class UWidgetSwitcher> AlertSwitcher;
 
 private:
 	
@@ -56,14 +59,7 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<USpaceTelemetryComponent> CachedTelemetryComp;
-	
-	UPROPERTY()
-	TObjectPtr<UMaterialInstanceDynamic> PitchLadderMID;
 
 	FTimerHandle TelemetryTimerHandle;
 	EShipMovementState CurrentMovementState = EShipMovementState::Stabilized;
-	
-	float LastRoll = 0.0f;
-	float AccumulatedRoll = 0.0f;
-	float SmoothedRoll = 0.0f;
 };

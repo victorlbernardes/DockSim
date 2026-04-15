@@ -9,6 +9,21 @@ ASpacePlayerController::ASpacePlayerController()
 void ASpacePlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	if (HUDClass)
+	{
+		MainHUDInstance = CreateWidget<UShipHUDWidget>(this, HUDClass);
+
+		if (MainHUDInstance)
+		{
+			MainHUDInstance->AddToViewport();
+
+			UE_LOG(LogTemp, Warning, TEXT("HUD criado no PlayerController"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("HUDClass não está setado!"));
+	}
 }
 
 void ASpacePlayerController::OnPossess(APawn* InPawn)
@@ -29,4 +44,12 @@ void ASpacePlayerController::OnPossess(APawn* InPawn)
 void ASpacePlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
+}
+
+void ASpacePlayerController::UpdateSignalAlert(ESignalStatus NewStatus)
+{
+	if (MainHUDInstance)
+	{
+		MainHUDInstance->UpdateSignalAlert(NewStatus);
+	}
 }

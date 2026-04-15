@@ -3,6 +3,7 @@
 #include "GameFramework/Pawn.h"
 #include "Components/SpaceTelemetryComponent.h"
 #include "Engine/Texture2D.h"
+#include "Components/WidgetSwitcher.h"
 
 void UShipHUDWidget::NativeConstruct()
 {
@@ -20,18 +21,6 @@ void UShipHUDWidget::NativeConstruct()
 			if (UWorld* World = GetWorld())
 			{
 				World->GetTimerManager().SetTimer(TelemetryTimerHandle, this, &UShipHUDWidget::UpdateContinuousTelemetry, 0.016f, true);
-			}
-		}
-		
-		if (IMG_PitchLadder)
-		{
-			UObject* Resource = IMG_PitchLadder->GetBrush().GetResourceObject();
-			UMaterialInterface* BaseMat = Cast<UMaterialInterface>(Resource);
-
-			if (BaseMat)
-			{
-				PitchLadderMID = UMaterialInstanceDynamic::Create(BaseMat, this);
-				IMG_PitchLadder->SetBrushFromMaterial(PitchLadderMID);
 			}
 		}
 		
@@ -116,26 +105,22 @@ void UShipHUDWidget::UpdateContinuousTelemetry()
 
 		IMG_Prograde->SetRenderTranslation(FVector2D(TranslationX, TranslationY));
 	}
-	
-	// C. Pitch Ladder
-	if (PitchLadderMID)
+}
+
+void UShipHUDWidget::UpdateSignalAlert(ESignalStatus NewStatus)
+{
+	UE_LOG(LogTemp, Warning, TEXT("UpdateSignalAlert"));
+	if (!AlertSwitcher) return;
+
+	UE_LOG(LogTemp, Warning, TEXT("AlertSwitcher existe"));
+	switch (NewStatus)
 	{
-		float NormalizedPitch = FMath::Clamp(Data.Pitch / 90.0f, -1.0f, 1.0f);
-		float WrappedRoll = FMath::UnwindDegrees(Data.Roll);
-		float TargetRoll = -WrappedRoll / 180.0f;
+	case ESignalStatus::Lost:
+		AlertSwitcher->SetActiveWidgetIndex(0);
+		break;
 
-		// --- SMOOTH (opcional mas recomendado) ---
-		if (UWorld* World = GetWorld())
-		{
-			float DeltaTime = World->GetDeltaSeconds();
-			SmoothedRoll = FMath::FInterpTo(SmoothedRoll, TargetRoll, DeltaTime, 8.0f);
-		}
-		else
-		{
-			SmoothedRoll = TargetRoll;
-		}
-
-		PitchLadderMID->SetScalarParameterValue(FName("RollAngle"), SmoothedRoll);
-		PitchLadderMID->SetScalarParameterValue(FName("PitchOffset"), NormalizedPitch);
+	case ESignalStatus::Acquired:
+		AlertSwitcher->SetActiveWidgetIndex(1);
+		break;
 	}
 }

@@ -1,7 +1,9 @@
 ﻿#include "Components/SpaceTelemetryComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SpaceResourceComponent.h"
+#include "DockingPort/SpaceDockingPort.h"
 #include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
 
 USpaceTelemetryComponent::USpaceTelemetryComponent()
 {
@@ -21,6 +23,38 @@ void USpaceTelemetryComponent::BeginPlay()
 void USpaceTelemetryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	// 1. Busca a Estação no mapa (Excelente para testes/MVP)
+	AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
+	ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
+
+	if (TargetPort && TargetPort->DockingAnchor)
+	{
+		// 2. Calcula a Distância (Convertendo unidades da Unreal de cm para metros)
+		FVector ShipLoc = GetOwner()->GetActorLocation();
+		FVector PortLoc = TargetPort->DockingAnchor->GetComponentLocation();
+		float DistanceMeters = FVector::Dist(ShipLoc, PortLoc) / 100.0f;
+
+		// 3. Calcula o Ângulo/Alinhamento (Dot Product)
+		FVector ShipForward = GetOwner()->GetActorForwardVector();
+		// Queremos que a nave olhe exatamente na direção oposta da face do porto
+		FVector TargetFacing = -TargetPort->DockingAnchor->GetForwardVector(); 
+		
+		float AlignmentDot = FVector::DotProduct(ShipForward, TargetFacing);
+		// Converte o Dot Product (-1 a 1) em Porcentagem (0% a 100%)
+		float AlignmentPercent = FMath::Clamp(AlignmentDot * 100.0f, 0.0f, 100.0f);
+
+		// 4. Exibe os Logs na Tela e no Output Log
+		if (GEngine)
+		{
+			FString DebugMsg = FString::Printf(TEXT("ALVO: %.2fm | ALINHAMENTO: %.1f%%"), DistanceMeters, AlignmentPercent);
+			
+			// Usamos a 'Key 2' e tempo '0.0f' para a mensagem atualizar no mesmo lugar em vez de flodar a tela
+			GEngine->AddOnScreenDebugMessage(2, 0.0f, FColor::Yellow, DebugMsg);
+		}
+		
+		// Descomente a linha abaixo se quiser que flode a janela de Output Log também
+		// UE_LOG(LogTemp, Log, TEXT("DOCKING: Dist: %.2fm | Alinhamento: %.1f%%"), DistanceMeters, AlignmentPercent);
+	}
 	
 }
 

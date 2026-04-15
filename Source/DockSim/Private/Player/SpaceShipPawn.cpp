@@ -8,6 +8,8 @@
 #include "Components/SpaceResourceComponent.h"
 #include "Components/SpaceTelemetryComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Core/SpacePlayerController.h"
+#include "UI/ShipHUDWidget.h"
 
 
 ASpaceShipPawn::ASpaceShipPawn()
@@ -76,7 +78,6 @@ void ASpaceShipPawn::BeginPlay()
 		// CFTVSystem->InitializeCameras(Cam_Front, Cam_Rear, Cam_Left, Cam_Right, Cam_Docking);
 		CFTVSystem->InitializeDockingCamera(Cam_Docking);
 	}
-
 }
 
 void ASpaceShipPawn::Tick(float DeltaTime)
@@ -288,11 +289,66 @@ void ASpaceShipPawn::OnFreeLookEnd(const FInputActionValue& Value)
 	}
 }
 
+// 1. QUANDO O JOGADOR APERTA O BOTÃO (TAB)
 void ASpaceShipPawn::OnToggleCameraPressed()
 {
-	if (CFTVSystem)
+	switch (CurrentMonitorState)
 	{
-		CFTVSystem->ToggleCameraMode();
+		case EDockingMonitorState::Offline:
+			// Se estava desligado e eu liguei, para onde ele vai? Depende do sinal!
+			if (CurrentSignalStatus == ESignalStatus::Acquired)
+			{
+				SetMonitorState(EDockingMonitorState::Active);
+			}
+			else
+			{
+				SetMonitorState(EDockingMonitorState::Searching);
+			}
+			break;
+
+		case EDockingMonitorState::Searching:
+		case EDockingMonitorState::Active:
+			// Se o monitor já estava ligado (não importa em qual tela), o botão desliga.
+			SetMonitorState(EDockingMonitorState::Offline);
+			break;
 	}
 }
+
+// 2. QUANDO A NAVE ENTRA OU SAI DA ESTAÇÃO
+void ASpaceShipPawn::UpdateDockingSignal(ESignalStatus NewStatus)
+{
+	CurrentSignalStatus = NewStatus;
+
+	if (ASpacePlayerController* PC = Cast<ASpacePlayerController>(GetController()))
+	{
+		PC->UpdateSignalAlert(CurrentSignalStatus);
+	}
+}
+
+// 3. O EXECUTOR DE ESTADOS (Gerencia Hardware e Câmera)
+void ASpaceShipPawn::SetMonitorState(EDockingMonitorState NewState)
+{
+	// Evita processamento duplo se o estado já for o mesmo
+	if (CurrentMonitorState == NewState) return; 
+
+	CurrentMonitorState = NewState;
+
+	// Otimização de Performance da Câmera (O CFTV só trabalha se a tela estiver Active)
+	if (CFTVSystem)
+	{
+		if (CurrentMonitorState == EDockingMonitorState::Active)
+		{
+			CFTVSystem->ToggleCameraMode(); // Liga a Câmera (Idealmente crie um SetCameraMode no CFTV)
+		}
+		else 
+		{
+			// Se foi para Offline ou Searching, a câmera deve parar de renderizar
+			if (CFTVSystem->GetCurrentMode() == ECameraSystemMode::DockingMode)
+			{
+				CFTVSystem->ToggleCameraMode(); 
+			}
+		}
+	}
+}
+
 

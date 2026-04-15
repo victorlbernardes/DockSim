@@ -1,5 +1,4 @@
 ﻿#include "Components/SpaceMovementComponent.h"
-
 #include "Components/SpaceResourceComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
