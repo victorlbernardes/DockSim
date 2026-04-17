@@ -7,6 +7,16 @@
 class UBoxComponent;
 class UStaticMeshComponent;
 class UPointLightComponent;
+class UMaterialInstanceDynamic;
+
+UENUM(BlueprintType)
+enum class EDockingStatus : uint8
+{
+	None        UMETA(DisplayName = "Longe (Ciano Pulsante)"),
+	Standby     UMETA(DisplayName = "Na Zona (Laranja Piscante)"),
+	Granted     UMETA(DisplayName = "Acoplado (Verde Sólido)"),
+	Denied      UMETA(DisplayName = "Negado (Vermelho Alerta)")
+};
 
 UCLASS()
 class DOCKSIM_API ASpaceDockingPort : public AActor
@@ -16,38 +26,47 @@ class DOCKSIM_API ASpaceDockingPort : public AActor
 public:	
 	ASpaceDockingPort();
 
-	// O Ponto Matemático Exato de Acoplamento
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
 	TObjectPtr<USceneComponent> DockingAnchor;
 
-	// O Volume invisível que detecta se a nave está perto o suficiente para ligar os sensores
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
 	TObjectPtr<UBoxComponent> CaptureArea;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
-	TObjectPtr<UPointLightComponent> BeaconLight;
+	UFUNCTION(BlueprintCallable, Category = "Docking Rules")
+	EDockingStatus RequestDockingPermission(float ApproachSpeedMPS);
+	
+	UFUNCTION(BlueprintCallable, Category = "Docking")
+	void SetDockingStatus(EDockingStatus NewStatus);
 
 protected:
 	virtual void BeginPlay() override;
 
-	// Uma raiz vazia ajuda na modularidade (para anexar em outras estações depois)
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
-	TObjectPtr<USceneComponent> DefaultRoot;
-
-	// A Malha Física (O "Anel" ou "Garagem")
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
 	TObjectPtr<UStaticMeshComponent> DockStructureMesh;
 
-	// Funções que o Trigger Box vai chamar quando a nave entrar/sair
 	UFUNCTION()
-	void OnCaptureAreaBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnCaptureAreaBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
-	void OnCaptureAreaEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	void OnCaptureAreaEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Docking Rules")
+	float MaxSafeDockingSpeed = 2.0f; 
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking Rules")
+	EDockingStatus CurrentDockingStatus = EDockingStatus::None;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Docking|Visuals")
+	TObjectPtr<UStaticMeshComponent> SirenBulb;
+
+	UPROPERTY(VisibleAnywhere, Category = "Docking|Visuals")
+	TObjectPtr<UPointLightComponent> BeaconLight;
+
+	UPROPERTY()
+	TObjectPtr<UMaterialInstanceDynamic> DynamicSirenMaterial;
+
+	void UpdateSirenLogic();
 
 private:
-	FTimerHandle BlinkTimerHandle;
-
-	void ToggleBeaconLight();
-	
+	FTimerHandle SirenTimerHandle;
 };

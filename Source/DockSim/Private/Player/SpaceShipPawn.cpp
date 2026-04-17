@@ -4,13 +4,14 @@
 #include "EnhancedInputComponent.h"
 #include "Components/CFTVComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
+#include "Components/SpaceHullComponent.h"
 #include "Components/SpaceMovementComponent.h"
 #include "Components/SpaceResourceComponent.h"
 #include "Components/SpaceTelemetryComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Core/SpacePlayerController.h"
+#include "DockingPort/SpaceDockingPort.h"
 #include "Kismet/GameplayStatics.h"
-#include "UI/ShipHUDWidget.h"
 
 
 ASpaceShipPawn::ASpaceShipPawn()
@@ -31,6 +32,7 @@ ASpaceShipPawn::ASpaceShipPawn()
 	MovementComponent = CreateDefaultSubobject<USpaceMovementComponent>(TEXT("MovementComponent"));
 	TelemetryComponent = CreateDefaultSubobject<USpaceTelemetryComponent>(TEXT("TelemetryComponent"));
 	ResourceComponent = CreateDefaultSubobject<USpaceResourceComponent>(TEXT("ResourceComponent"));
+	HullComponent = CreateDefaultSubobject<USpaceHullComponent>(TEXT("HullComponent"));
 	CFTVSystem = CreateDefaultSubobject<UCFTVComponent>(TEXT("CFTV_System"));
 	
 	//Criação Física das Câmeras (Todas nascem DESLIGADAS)
@@ -66,6 +68,13 @@ ASpaceShipPawn::ASpaceShipPawn()
 	RightDisplayComp->SetupAttachment(ShipMesh); 
 	RightDisplayComp->SetWidgetSpace(EWidgetSpace::World);
 	RightDisplayComp->SetDrawSize(FVector2D(512.0f, 512.0f));
+	
+	SensorShield = CreateDefaultSubobject<USphereComponent>(TEXT("SensorShield"));
+	SensorShield->SetupAttachment(ShipMesh);
+    
+	SensorShield->InitSphereRadius(500.0f); 
+	SensorShield->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
+	SensorShield->SetGenerateOverlapEvents(true);
 
 }
 
@@ -77,6 +86,23 @@ void ASpaceShipPawn::BeginPlay()
 		// CFTVSystem->InitializeCameras(Cam_Front, Cam_Rear, Cam_Left, Cam_Right, Cam_Docking);
 		CFTVSystem->InitializeDockingCamera(Cam_Docking);
 		CFTVSystem->InitializeDockingScreen(DockingScreenMesh);
+	}
+	
+	if (ShipMesh)
+	{
+		ShipMesh->OnComponentHit.AddDynamic(this, &ASpaceShipPawn::OnShipHit);
+	}
+
+	// CONECTA OS DELEGATES DO COMPONENTE ÀS FUNÇÕES DA NAVE
+	if (HullComponent)
+	{
+		HullComponent->OnHullWarning.AddDynamic(this, &ASpaceShipPawn::HandleHullWarning);
+		HullComponent->OnHullCritical.AddDynamic(this, &ASpaceShipPawn::HandleHullCritical);
+	}
+	
+	if (SensorShield)
+	{
+		SensorShield->OnComponentBeginOverlap.AddDynamic(this, &ASpaceShipPawn::OnSensorOverlap);
 	}
 }
 
@@ -369,60 +395,159 @@ void ASpaceShipPawn::SetMonitorState(EDockingMonitorState NewState)
 
 void ASpaceShipPawn::OnDockButtonPressed(const FInputActionValue& Value)
 {
-	switch (CurrentFlightState)
+    // Trava de segurança principal: Se a nave explodiu, nenhum botão funciona.
+    if (CurrentFlightState == EShipFlightState::Disabled) return;
+    
+    switch (CurrentFlightState)
+    {
+       // ==========================================
+       // CASO 1: DESACOPLAR (Soltar da Estação)
+       // ==========================================
+       case EShipFlightState::Docked:
+       {
+          // 1. Desgruda da estação
+          ShipMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+          
+          // 2. RELIGA A FÍSICA
+          ShipMesh->SetSimulatePhysics(true);
+          ShipMesh->WakeAllRigidBodies();
+
+          // 3. Atualiza o Estado
+          CurrentFlightState = EShipFlightState::FreeFlying;
+          
+          if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("TRAVAS LIBERADAS. Física reativada."));
+          break;
+       }
+
+       // ==========================================
+       // CASO 2: ACOPLAR (Pedir Permissão e Prender)
+       // ==========================================
+       case EShipFlightState::FreeFlying:
+       {
+          if (TelemetryComponent && TelemetryComponent->IsReadyForHardLock())
+          {
+             AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
+             ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
+
+             if (TargetPort)
+             {
+                // --- NOVA ALFÂNDEGA ESPACIAL ---
+                
+                // A. Calcula a nossa velocidade de aproximação
+                float ApproachSpeed = ShipMesh->GetComponentVelocity().Size() / 100.0f;
+
+                // B. Pede permissão para a estação
+                EDockingStatus StationResponse = TargetPort->RequestDockingPermission(ApproachSpeed);
+
+                // C. O Veredito!
+                if (StationResponse == EDockingStatus::Granted)
+                {
+                    // Zera a inércia atual
+                    ShipMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+                    ShipMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+
+                    // DESLIGA A FÍSICA
+                    ShipMesh->SetSimulatePhysics(false);
+
+                    // Gruda na Estação
+                    ShipMesh->AttachToComponent(TargetPort->DockingAnchor, FAttachmentTransformRules::KeepWorldTransform);
+                    
+                    // Atualiza o Estado
+                    CurrentFlightState = EShipFlightState::Docked;
+
+                    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("DOCKING BEM SUCEDIDO! Sistemas travados."));
+                }
+                else if (StationResponse == EDockingStatus::Denied)
+                {
+                    // A estação rejeitou! A nave NÃO gruda e a física continua ligada.
+                    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red, TEXT("ESTAÇÃO: Acoplamento RECUSADO! Velocidade excessiva!"));
+                }
+             }
+          }
+          else
+          {
+             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("ALERTA: Falha de alinhamento. Abortando."));
+          }
+          break;
+       }
+    }
+}
+
+// ==========================================
+// A FOTO DA CAIXA PRETA (Ocorre milissegundos antes da batida)
+// ==========================================
+void ASpaceShipPawn::OnSensorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	// Ignora a nós mesmos ou colisões fantasmas
+	if (!OtherActor || OtherActor == this) return;
+
+	// TIRA A FOTO! Guarda a velocidade exata da nave antes do metal amassar
+	PreImpactVelocity = ShipMesh->GetComponentVelocity();
+}
+
+// ==========================================
+// O IMPACTO DO METAL (A Batida Física Real)
+// ==========================================
+void ASpaceShipPawn::OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (CurrentFlightState == EShipFlightState::Docked) return;
+
+	// 1. Em vez de perguntar a velocidade para a Unreal agora, nós usamos a FOTO da Caixa Preta!
+	FVector RelativeVelocity = PreImpactVelocity;
+    
+	// 2. Subtrai a velocidade da estação (se ela estiver se movendo)
+	if (OtherComp && OtherComp->Mobility != EComponentMobility::Static) 
 	{
-		// ==========================================
-		// CASO 1: DESACOPLAR (Soltar da Estação)
-		// ==========================================
-		case EShipFlightState::Docked:
-		{
-			// 1. Desgruda da estação
-			ShipMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-			
-			// 2. RELIGA A FÍSICA (O Segredo!)
-			ShipMesh->SetSimulatePhysics(true);
-			ShipMesh->WakeAllRigidBodies(); // Acorda a física caso ela tenha "dormido"
+		RelativeVelocity -= OtherComp->GetComponentVelocity(); 
+	}
 
-			// 3. Atualiza o Estado
-			CurrentFlightState = EShipFlightState::FreeFlying;
-			
-			if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("TRAVAS LIBERADAS. Física reativada."));
-			break;
-		}
+	// 3. A Matemática Inquebrável (Projeta a velocidade contra a parede)
+	float ImpactSpeedCM = FMath::Abs(FVector::DotProduct(RelativeVelocity, -Hit.ImpactNormal));
+	float ImpactSpeedMPS = ImpactSpeedCM / 100.0f;
 
-		// ==========================================
-		// CASO 2: ACOPLAR (Prender na Estação)
-		// ==========================================
-		case EShipFlightState::FreeFlying:
-		{
-			if (TelemetryComponent && TelemetryComponent->IsReadyForHardLock())
-			{
-				AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
-				ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
+	if (GEngine) 
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("ESCUDO SENSOR: Impacto calculado a %.1f m/s"), ImpactSpeedMPS));
+	}
 
-				if (TargetPort)
-				{
-					// 1. Zera a inércia atual
-					ShipMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
-					ShipMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+	// 4. Passa a Velocidade Pura para o Casco avaliar
+	if (HullComponent)
+	{
+		HullComponent->ProcessImpact(ImpactSpeedMPS);
+	}
+}
 
-					// 2. DESLIGA A FÍSICA (Evita que a nave exploda ao colidir com a doca)
-					ShipMesh->SetSimulatePhysics(false);
+void ASpaceShipPawn::HandleHullWarning(float ImpactSpeed)
+{
+	// Feedback local da nave (ex: soltar faíscas, tocar som de metal amassando)
+	if (GEngine) 
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, FString::Printf(TEXT("ALERTA DA NAVE: Casco avariado a %.1f m/s."), ImpactSpeed));
+	}
+}
 
-					// 3. Gruda na Estação
-					ShipMesh->AttachToComponent(TargetPort->DockingAnchor, FAttachmentTransformRules::KeepWorldTransform);
-					
-					// 4. Atualiza o Estado
-					CurrentFlightState = EShipFlightState::Docked;
+void ASpaceShipPawn::HandleHullCritical()
+{
+	// 1. MUDA O ESTADO (Isso automaticamente bloqueia o WASD, Throttle e Mouse!)
+	CurrentFlightState = EShipFlightState::Disabled;
 
-					if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("DOCKING BEM SUCEDIDO! Sistemas travados."));
-				}
-			}
-			else
-			{
-				if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("ALERTA: Falha de alinhamento. Abortando."));
-			}
-			break;
-		}
+	// 2. FEEDBACK NA TELA
+	if (GEngine) 
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Red, TEXT("SISTEMAS CRÍTICOS: Perda total de controle de voo."));
+	}
+
+	// 3. FÍSICA DE DERIVA (Opcional, mas muito legal)
+	// Dá um solavanco na nave para ela ficar girando sem controle no vácuo
+	if (ShipMesh)
+	{
+		// Desliga a inércia linear para ela não voar infinitamente para longe
+		ShipMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+		
+		// Aplica um giro caótico e irreversível
+		float SpinX = FMath::RandRange(-30.0f, 30.0f);
+		float SpinY = FMath::RandRange(-30.0f, 30.0f);
+		float SpinZ = FMath::RandRange(-30.0f, 30.0f);
+		ShipMesh->SetPhysicsAngularVelocityInDegrees(FVector(SpinX, SpinY, SpinZ));
 	}
 }

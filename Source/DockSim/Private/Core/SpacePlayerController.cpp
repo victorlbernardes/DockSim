@@ -16,8 +16,6 @@ void ASpacePlayerController::BeginPlay()
 		if (MainHUDInstance)
 		{
 			MainHUDInstance->AddToViewport();
-
-			UE_LOG(LogTemp, Warning, TEXT("HUD criado no PlayerController"));
 		}
 	}
 	else

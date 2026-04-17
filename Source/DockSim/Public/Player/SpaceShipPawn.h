@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "DockingPort/SpaceDockingPort.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/Pawn.h"
 #include "SpaceShipPawn.generated.h"
 
@@ -21,7 +21,8 @@ UENUM(BlueprintType)
 enum class EShipFlightState : uint8
 {
 	FreeFlying  UMETA(DisplayName = "Voo Livre"),
-	Docked      UMETA(DisplayName = "Atracado / Travado")
+	Docked      UMETA(DisplayName = "Atracado / Travado"),
+	Disabled    UMETA(DisplayName = "Sistemas Inoperantes")
 };
 
 // O estado do sinal de rádio da estação
@@ -76,6 +77,8 @@ public:
 	TSubclassOf<class UShipHUDWidget> HUDClass;
 	UPROPERTY()
 	TObjectPtr<UShipHUDWidget> MainHUDInstance;
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+	TObjectPtr<class USpaceHullComponent> HullComponent;
 	
 protected:
 	virtual void BeginPlay() override;
@@ -148,6 +151,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Pilot|Neck")
 	float LookSensitivity = 2.0f;
+
+	// O limite de velocidade (em metros por segundo) antes de quebrar a nave
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Damage")
+	float MaxSafeImpactSpeed = 2.0f;
 		
 	void Move(const FInputActionValue& Value);
 	void OnThrottle(const FInputActionValue& Value);
@@ -160,6 +167,17 @@ protected:
 	void OnFreeLookEnd(const FInputActionValue& Value);
 	void OnToggleCameraPressed();
 	void OnDockButtonPressed(const FInputActionValue& Value);
+	UFUNCTION()
+	void OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	UFUNCTION()
+	void HandleHullWarning(float ImpactSpeed);
+	UFUNCTION()
+	void HandleHullCritical();
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision")
+	TObjectPtr<USphereComponent> SensorShield;
+	FVector PreImpactVelocity;
+	UFUNCTION()
+	void OnSensorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	
 	
 private:
