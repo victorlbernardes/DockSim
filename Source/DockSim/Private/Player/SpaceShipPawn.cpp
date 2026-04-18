@@ -395,82 +395,51 @@ void ASpaceShipPawn::SetMonitorState(EDockingMonitorState NewState)
 
 void ASpaceShipPawn::OnDockButtonPressed(const FInputActionValue& Value)
 {
-    // Trava de segurança principal: Se a nave explodiu, nenhum botão funciona.
     if (CurrentFlightState == EShipFlightState::Disabled) return;
-    
+
+    // Transições de Estado Puras
     switch (CurrentFlightState)
     {
-       // ==========================================
-       // CASO 1: DESACOPLAR (Soltar da Estação)
-       // ==========================================
-       case EShipFlightState::Docked:
-       {
-          // 1. Desgruda da estação
-          ShipMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-          
-          // 2. RELIGA A FÍSICA
-          ShipMesh->SetSimulatePhysics(true);
-          ShipMesh->WakeAllRigidBodies();
+        case EShipFlightState::Docked:
+            // 1. Solta a nave
+            ShipMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+            ShipMesh->SetSimulatePhysics(true);
+            ShipMesh->WakeAllRigidBodies();
+            
+            // 2. Volta para Voo Livre
+            CurrentFlightState = EShipFlightState::FreeFlying;
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("TRAVAS LIBERADAS. Voo Livre."));
+            break;
 
-          // 3. Atualiza o Estado
-          CurrentFlightState = EShipFlightState::FreeFlying;
-          
-          if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("TRAVAS LIBERADAS. Física reativada."));
-          break;
-       }
+        case EShipFlightState::FreeFlying:
+            // 1. Armar sistema de pouso
+            CurrentFlightState = EShipFlightState::LandingMode;
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("MODO DE POUSO: Grampos armados. Aproxime-se do berço."));
+            break;
 
-       // ==========================================
-       // CASO 2: ACOPLAR (Pedir Permissão e Prender)
-       // ==========================================
-       case EShipFlightState::FreeFlying:
-       {
-          if (TelemetryComponent && TelemetryComponent->IsReadyForHardLock())
-          {
-             AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
-             ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
-
-             if (TargetPort)
-             {
-                // --- NOVA ALFÂNDEGA ESPACIAL ---
-                
-                // A. Calcula a nossa velocidade de aproximação
-                float ApproachSpeed = ShipMesh->GetComponentVelocity().Size() / 100.0f;
-
-                // B. Pede permissão para a estação
-                EDockingStatus StationResponse = TargetPort->RequestDockingPermission(ApproachSpeed);
-
-                // C. O Veredito!
-                if (StationResponse == EDockingStatus::Granted)
-                {
-                    // Zera a inércia atual
-                    ShipMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
-                    ShipMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
-
-                    // DESLIGA A FÍSICA
-                    ShipMesh->SetSimulatePhysics(false);
-
-                    // Gruda na Estação
-                    ShipMesh->AttachToComponent(TargetPort->DockingAnchor, FAttachmentTransformRules::KeepWorldTransform);
-                    
-                    // Atualiza o Estado
-                    CurrentFlightState = EShipFlightState::Docked;
-
-                    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("DOCKING BEM SUCEDIDO! Sistemas travados."));
-                }
-                else if (StationResponse == EDockingStatus::Denied)
-                {
-                    // A estação rejeitou! A nave NÃO gruda e a física continua ligada.
-                    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 4.0f, FColor::Red, TEXT("ESTAÇÃO: Acoplamento RECUSADO! Velocidade excessiva!"));
-                }
-             }
-          }
-          else
-          {
-             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, TEXT("ALERTA: Falha de alinhamento. Abortando."));
-          }
-          break;
-       }
+        case EShipFlightState::LandingMode:
+            // 1. Desistir do pouso e guardar os grampos
+            CurrentFlightState = EShipFlightState::FreeFlying;
+            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange, TEXT("MODO DE POUSO ABORTADO. Grampos recolhidos."));
+            break;
     }
+}
+
+void ASpaceShipPawn::ExecuteHardcoreDocking(ASpaceDockingPort* TargetPort)
+{
+    // Zera a física no momento do toque
+    ShipMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+    ShipMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+    ShipMesh->SetSimulatePhysics(false);
+
+    // Trava na posição milimétrica
+    FAttachmentTransformRules DockingRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
+    ShipMesh->AttachToComponent(TargetPort->DockingAnchor, DockingRules);
+
+    // Atualiza o estado
+    CurrentFlightState = EShipFlightState::Docked;
+
+    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("DOCKING PERFEITO! Sistema selado."));
 }
 
 // ==========================================

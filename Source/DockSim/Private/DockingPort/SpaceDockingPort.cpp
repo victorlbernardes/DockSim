@@ -43,6 +43,13 @@ ASpaceDockingPort::ASpaceDockingPort()
 	CaptureArea->SetBoxExtent(FVector(1500.0f)); 
 	CaptureArea->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	CaptureArea->SetCollisionResponseToAllChannels(ECR_Overlap);
+	
+	PrecisionDockingVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("PrecisionDockingVolume"));
+	PrecisionDockingVolume->SetupAttachment(DockingAnchor);
+    
+	PrecisionDockingVolume->SetBoxExtent(FVector(100.0f, 100.0f, 50.0f)); 
+	PrecisionDockingVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	PrecisionDockingVolume->SetCollisionResponseToAllChannels(ECR_Overlap);
 }
 
 void ASpaceDockingPort::BeginPlay()
@@ -58,6 +65,7 @@ void ASpaceDockingPort::BeginPlay()
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(SirenTimerHandle, this, &ASpaceDockingPort::UpdateSirenLogic, 0.05f, true);
+	PrecisionDockingVolume->OnComponentBeginOverlap.AddDynamic(this, &ASpaceDockingPort::OnPrecisionVolumeOverlap);
 }
 
 void ASpaceDockingPort::SetDockingStatus(EDockingStatus NewStatus)
@@ -136,4 +144,31 @@ EDockingStatus ASpaceDockingPort::RequestDockingPermission(float ApproachSpeedMP
 	EDockingStatus Result = (ApproachSpeedMPS <= MaxSafeDockingSpeed) ? EDockingStatus::Granted : EDockingStatus::Denied;
 	SetDockingStatus(Result);
 	return Result;
+}
+
+void ASpaceDockingPort::OnPrecisionVolumeOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	// 1. Uma nave encostou na âncora?
+	if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(OtherActor))
+	{
+		// 2. A NAVE ESTÁ EM MODO DE POUSO? (Substitui o bool bAreClampsArmed)
+		if (Ship->GetCurrentFlightState() == EShipFlightState::LandingMode)
+		{
+			// 3. A velocidade está correta?
+			float Speed = Ship->GetVelocity().Size() / 100.0f;
+			EDockingStatus Status = RequestDockingPermission(Speed);
+
+			// 4. O Veredito!
+			if (Status == EDockingStatus::Granted)
+			{
+				// A Alfândega liberou! Puxa o gatilho da nave para desligar os motores.
+				Ship->ExecuteHardcoreDocking(this);
+			}
+		}
+		else
+		{
+			// O jogador bateu a nave na estação porque não apertou o botão de armar os grampos!
+			UE_LOG(LogTemp, Error, TEXT("Falha: A nave encostou no berço, mas não estava em Landing Mode!"));
+		}
+	}
 }
