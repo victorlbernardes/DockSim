@@ -138,6 +138,9 @@ protected:
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
 	// TObjectPtr<USceneCaptureComponent2D> Cam_Rear;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Docking")
+	TObjectPtr<USceneComponent> DockingPoint;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
 	TObjectPtr<USceneCaptureComponent2D> Cam_Docking; 
 	

@@ -26,8 +26,13 @@ class DOCKSIM_API ASpaceDockingPort : public AActor
 public:	
 	ASpaceDockingPort();
 
+	// 1. Volta a ser USceneComponent (Invisível, Matemática Pura)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
 	TObjectPtr<USceneComponent> DockingAnchor;
+
+	// 2. Cria um componente só para a arte
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
+	TObjectPtr<UStaticMeshComponent> DockVisualRing;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
 	TObjectPtr<UBoxComponent> CaptureArea;

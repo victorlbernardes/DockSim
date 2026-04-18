@@ -11,7 +11,6 @@
 #include "Components/WidgetComponent.h"
 #include "Core/SpacePlayerController.h"
 #include "DockingPort/SpaceDockingPort.h"
-#include "Kismet/GameplayStatics.h"
 
 
 ASpaceShipPawn::ASpaceShipPawn()
@@ -54,8 +53,11 @@ ASpaceShipPawn::ASpaceShipPawn()
 
 	DockingScreenMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DockingScreen"));
 	DockingScreenMesh->SetupAttachment(ShipMesh);
+	
+	DockingPoint = CreateDefaultSubobject<USceneComponent>(TEXT("DockingPoint"));
+	DockingPoint->SetupAttachment(ShipMesh);
 	Cam_Docking = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Docking"));
-	Cam_Docking->SetupAttachment(RootComponent);
+	Cam_Docking->SetupAttachment(DockingPoint);
 	Cam_Docking->bCaptureEveryFrame = false;
 	Cam_Docking->bCaptureOnMovement = false;
 	
@@ -127,6 +129,7 @@ void ASpaceShipPawn::Tick(float DeltaTime)
 			CockpitCamera->SetRelativeRotation(SmoothReturn);
 		}
 	}
+	
 }
 
 void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -427,19 +430,18 @@ void ASpaceShipPawn::OnDockButtonPressed(const FInputActionValue& Value)
 
 void ASpaceShipPawn::ExecuteHardcoreDocking(ASpaceDockingPort* TargetPort)
 {
-    // Zera a física no momento do toque
-    ShipMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
-    ShipMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
-    ShipMesh->SetSimulatePhysics(false);
+	ShipMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
+	ShipMesh->SetPhysicsAngularVelocityInDegrees(FVector::ZeroVector);
+	ShipMesh->SetSimulatePhysics(false);
 
-    // Trava na posição milimétrica
-    FAttachmentTransformRules DockingRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
-    ShipMesh->AttachToComponent(TargetPort->DockingAnchor, DockingRules);
+	FAttachmentTransformRules DockingRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
 
-    // Atualiza o estado
-    CurrentFlightState = EShipFlightState::Docked;
+	// AGORA: Usamos o nome do componente "DockingPoint" como se fosse um Socket.
+	// A Unreal entende que deve alinhar este componente com a âncora da estação.
+	ShipMesh->AttachToComponent(TargetPort->DockingAnchor, DockingRules, FName("DockingPoint"));
 
-    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("DOCKING PERFEITO! Sistema selado."));
+	CurrentFlightState = EShipFlightState::Docked;
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("DOCKING PERFEITO!"));
 }
 
 // ==========================================

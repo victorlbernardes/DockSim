@@ -18,6 +18,20 @@ ASpaceDockingPort::ASpaceDockingPort()
 	DockingAnchor = CreateDefaultSubobject<USceneComponent>(TEXT("DockingAnchor"));
 	DockingAnchor->SetupAttachment(DockStructureMesh);
 
+	// 2. O Anel Visual (Filho da âncora)
+	DockVisualRing = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DockVisualRing"));
+	DockVisualRing->SetupAttachment(DockingAnchor);
+	DockVisualRing->SetCollisionProfileName(TEXT("NoCollision"));
+
+	// Colocamos o modelo e giramos APENAS a arte! O Anchor pai continua reto.
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> TargetMesh(TEXT("/Engine/BasicShapes/Cylinder"));
+	if (TargetMesh.Succeeded())
+	{
+		DockVisualRing->SetStaticMesh(TargetMesh.Object);
+		DockVisualRing->SetRelativeScale3D(FVector(1.0f, 1.0f, 0.1f));
+		DockVisualRing->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f)); // A arte gira 90 graus. A matemática não.
+	}
+
 	// Lâmpada física criada no C++
 	SirenBulb = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SirenBulb"));
 	SirenBulb->SetupAttachment(DockingAnchor);
