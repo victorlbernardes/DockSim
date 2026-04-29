@@ -19,6 +19,7 @@ class DOCKSIM_API USpaceAudioComponent : public UActorComponent
 
 public:    
 	USpaceAudioComponent();
+	void PlayDockingSound();
 
 protected:
 	virtual void BeginPlay() override;
@@ -32,6 +33,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Space Audio|Assets")
 	TObjectPtr<USoundBase> Snd_ProximityBeep;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Space Audio|Assets")
+	TObjectPtr<USoundBase> Snd_DockingSuccess;
 
 private:
 	UPROPERTY() TObjectPtr<UAudioComponent> AmbienceAudioComp;

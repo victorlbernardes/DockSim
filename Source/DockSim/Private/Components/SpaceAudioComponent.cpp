@@ -92,3 +92,18 @@ void USpaceAudioComponent::UpdateProximityAlert(float DeltaTime)
         BeepTimer = FMath::Clamp(Distance / 15.0f, 0.08f, 1.0f);
     }
 }
+
+void USpaceAudioComponent::PlayDockingSound()
+{
+    if (Snd_DockingSuccess)
+    {
+        // Toca o som de impacto do acoplamento com volume total
+        UGameplayStatics::PlaySound2D(this, Snd_DockingSuccess, 1.0f);
+        
+        // Opcional: Se você quiser, pode até forçar o motor a ficar mudo aqui
+        if (EngineAudioComp && EngineAudioComp->IsPlaying())
+        {
+            EngineAudioComp->Stop();
+        }
+    }
+}
