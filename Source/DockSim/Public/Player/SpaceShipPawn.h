@@ -1,22 +1,31 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Components/SphereComponent.h"
 #include "GameFramework/Pawn.h"
+#include "Components/SphereComponent.h"
 #include "SpaceShipPawn.generated.h"
 
-
+// -------------------------------------------------------------
+// FORWARD DECLARATIONS (Melhora o tempo de compilação)
+// -------------------------------------------------------------
 struct FInputActionValue;
 class UStaticMeshComponent;
 class UCameraComponent;
 class UInputAction;
 class USpaceMovementComponent;
+class USpaceTelemetryComponent;
 class USpaceResourceComponent;
+class USpaceHullComponent;
 class UCFTVComponent;
+class USpaceAudioComponent;
 class USceneCaptureComponent2D;
-class UWidgetComponent;
-class UWidgetSwitcher;
+class UTextureRenderTarget2D;
+class UWidgetComponent; // <-- Adicionado para o Monitor 3D
+class UShipHUDWidget;
 
+// -------------------------------------------------------------
+// ENUMS DE ESTADO
+// -------------------------------------------------------------
 UENUM(BlueprintType)
 enum class EShipFlightState : uint8
 {
@@ -26,7 +35,6 @@ enum class EShipFlightState : uint8
 	Disabled        UMETA(DisplayName = "Desativado / Destruído")
 };
 
-// O estado do sinal de rádio da estação
 UENUM(BlueprintType)
 enum class ESignalStatus : uint8
 {
@@ -34,7 +42,6 @@ enum class ESignalStatus : uint8
 	Acquired    UMETA(DisplayName = "Sinal Adquirido (Na Zona)")
 };
 
-// A Máquina de Estados real do Monitor (O que o jogador vê)
 UENUM(BlueprintType)
 enum class EDockingMonitorState : uint8
 {
@@ -53,12 +60,15 @@ enum class EPilotVisionMode : uint8
 UENUM(BlueprintType)
 enum class ERotationMode : uint8
 {
-	Locked      UMETA(DisplayName = "Locked"),
-	YawControl     UMETA(DisplayName = "Yaw Control"),
-	RollControl    UMETA(DisplayName = "Roll Control"),
-	YawAndRollControl  UMETA(DisplayName = "Yaw and Roll")
+	Locked             UMETA(DisplayName = "Trava Total"),
+	YawControl         UMETA(DisplayName = "Controle de Yaw"),
+	RollControl        UMETA(DisplayName = "Controle de Roll"),
+	YawAndRollControl  UMETA(DisplayName = "Yaw e Roll")
 };
 
+// -------------------------------------------------------------
+// CLASSE PRINCIPAL
+// -------------------------------------------------------------
 UCLASS()
 class DOCKSIM_API ASpaceShipPawn : public APawn
 {
@@ -67,34 +77,95 @@ class DOCKSIM_API ASpaceShipPawn : public APawn
 public:
 	ASpaceShipPawn();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	// A função que a Estação chama ao invés do SetDockingSignal(bool)
-	UFUNCTION(BlueprintCallable, Category = "Ship Systems|Docking")
-	void UpdateDockingSignal(ESignalStatus NewSignalStatus);
-
-	// Para o Widget saber exatamente o que desenhar
+	
+	// Acesso aos Estados
+	EShipFlightState GetCurrentFlightState() const { return CurrentFlightState; }
+	
 	UFUNCTION(BlueprintPure, Category = "Ship Systems|Docking")
 	EDockingMonitorState GetMonitorState() const { return CurrentMonitorState; }
-	UPROPERTY(EditDefaultsOnly, Category = "UI")
-	TSubclassOf<class UShipHUDWidget> HUDClass;
-	UPROPERTY()
-	TObjectPtr<UShipHUDWidget> MainHUDInstance;
-	UPROPERTY(VisibleAnywhere, Category = "Components")
-	TObjectPtr<class USpaceHullComponent> HullComponent;
-	
-	EShipFlightState GetCurrentFlightState() const { return CurrentFlightState; }
 
+	// Interação com a Estação Espacial
+	UFUNCTION(BlueprintCallable, Category = "Ship Systems|Docking")
+	void UpdateDockingSignal(ESignalStatus NewSignalStatus);
 	void ExecuteHardcoreDocking(class ASpaceDockingPort* TargetPort);
+	
+	class USpaceHullComponent* GetHullComponent() const { return HullComponent; }
+	
+	USceneComponent* GetDockingPoint() const { return DockingPoint; }
+		
+	UFUNCTION()
+	void HandleHullWarning(float ImpactSpeed);
+	
+	UFUNCTION()
+	void HandleHullCritical();
 	
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mesh", meta = (AllowPrivateAccess = "true"))
+
+	// ==========================================
+	// COMPONENTES DA NAVE
+	// ==========================================
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> ShipMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UCameraComponent> CockpitCamera;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USpaceMovementComponent> MovementComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USpaceTelemetryComponent> TelemetryComponent;
+		
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USpaceResourceComponent> ResourceComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USpaceHullComponent> HullComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USpaceAudioComponent> AudioSystem;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USphereComponent> SensorShield;
+
+	// ==========================================
+	// SISTEMA DE DOCKING, CFTV E MONITORES 3D
+	// ==========================================
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
+	TObjectPtr<UCFTVComponent> CFTVSystem;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Docking")
+	TObjectPtr<USceneComponent> DockingPoint;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Docking")
+	TObjectPtr<USceneCaptureComponent2D> Cam_Docking; 
+
+	// A carcaça de plástico do monitor no cockpit
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Docking")
+	TObjectPtr<UStaticMeshComponent> DockingScreenMesh;
+
+	// A tela digital brilhante que exibe a interface
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Docking")
+	TObjectPtr<UWidgetComponent> DockingMonitorComp;
+
+	// ==========================================
+	// INTERFACE (UI) & RENDERS DINÂMICOS
+	// ==========================================
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UShipHUDWidget> HUDClass;
+	
+	UPROPERTY()
+	TObjectPtr<UShipHUDWidget> MainHUDInstance;
+
+	// O arquivo de vídeo gerado dinamicamente para a câmera de ré
+	UPROPERTY(Transient)
+	TObjectPtr<UTextureRenderTarget2D> DynamicDockingRT;
+
+	// ==========================================
+	// INPUTS (Enhanced Input)
+	// ==========================================
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> MoveAction;
 	
@@ -102,83 +173,47 @@ protected:
 	TObjectPtr<UInputAction> ThrottleAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<class UInputAction> LookAction;
+	TObjectPtr<UInputAction> LookAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<class UInputAction> ToggleYawAction;
+	TObjectPtr<UInputAction> ToggleYawAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<class UInputAction> ToggleRollAction;
+	TObjectPtr<UInputAction> ToggleRollAction;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<class UInputAction> PrecisionAction;
+	TObjectPtr<UInputAction> PrecisionAction;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<class UInputAction> FreeLookAction;
+	TObjectPtr<UInputAction> FreeLookAction;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<class UInputAction> ToggleCameraAction;
+	TObjectPtr<UInputAction> DockAction;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<class UInputAction> DockAction;
-	
+	TObjectPtr<UInputAction> EscAction;
+
 	// ==========================================
-	// SISTEMA DE CFTV (Câmeras do Cockpit)
+	// CONFIGURAÇÕES DA NAVE (Ajustáveis no Editor)
 	// ==========================================
-
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
-	// TObjectPtr<USceneCaptureComponent2D> Cam_Front;
-	//
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
-	// TObjectPtr<USceneCaptureComponent2D> Cam_Left;
-	//
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
-	// TObjectPtr<USceneCaptureComponent2D> Cam_Right;
-	//
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
-	// TObjectPtr<USceneCaptureComponent2D> Cam_Rear;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Docking")
-	TObjectPtr<USceneComponent> DockingPoint;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
-	TObjectPtr<USceneCaptureComponent2D> Cam_Docking; 
-	
-	// O Switcher que controlará a visibilidade do alerta no HUD
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<class UWidgetSwitcher> AlertSwitcher;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Pilot|Neck")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Settings|Pilot Neck")
 	float MaxLookUp = 60.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Pilot|Neck")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Settings|Pilot Neck")
 	float MaxLookDown = -50.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Pilot|Neck")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Settings|Pilot Neck")
 	float MaxLookLeftRight = 110.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Pilot|Neck")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Settings|Pilot Neck")
 	float LookSensitivity = 2.0f;
 
-	// O limite de velocidade (em metros por segundo) antes de quebrar a nave
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Systems|Damage")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Settings|Damage")
 	float MaxSafeImpactSpeed = 2.0f;
-	
-	void OnDockButtonPressed(const struct FInputActionValue& Value);
-	UFUNCTION()
-	void OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
-	UFUNCTION()
-	void HandleHullWarning(float ImpactSpeed);
-	UFUNCTION()
-	void HandleHullCritical();
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision")
-	TObjectPtr<USphereComponent> SensorShield;
-	UFUNCTION()
-	void OnSensorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	
-	UPROPERTY(VisibleAnywhere, Category = "Flight State")
-	EShipFlightState CurrentFlightState = EShipFlightState::FreeFlying;
-		
+
+	// ==========================================
+	// FUNÇÕES DE INPUT E LÓGICA
+	// ==========================================
 	void Move(const FInputActionValue& Value);
 	void OnThrottle(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -186,39 +221,26 @@ protected:
 	void OnToggleRoll(const FInputActionValue& Value);
 	void OnPrecisionModeStart(const FInputActionValue& Value);
 	void OnPrecisionModeEnd(const FInputActionValue& Value);
-	void OnFreeLookStart(const FInputActionValue& Value);
-	void OnFreeLookEnd(const FInputActionValue& Value);
-	void OnToggleCameraPressed();
-	FVector PreImpactVelocity;
+	void ToggleFreeLook(const FInputActionValue& Value);
+	void OnDockButtonPressed(const FInputActionValue& Value);
+	void OnPausePressed(const FInputActionValue& Value);
 	
+	// Callbacks de Física e Dano
+	UFUNCTION()
+	void OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	
-	
+	UFUNCTION()
+	void OnSensorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
 private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class USpaceMovementComponent> MovementComponent;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class USpaceTelemetryComponent> TelemetryComponent;
-		
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<USpaceResourceComponent> ResourceComponent;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Software", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UCFTVComponent> CFTVSystem;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UWidgetComponent> LeftDisplayComp;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UWidgetComponent> RightDisplayComp;
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Cockpit", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UStaticMeshComponent> DockingScreenMesh;
-	
+	// Máquinas de Estado e Variáveis Privadas
+	EShipFlightState CurrentFlightState = EShipFlightState::FreeFlying;
 	EPilotVisionMode CurrentVisionMode = EPilotVisionMode::Standard;
 	ERotationMode CurrentRotState = ERotationMode::Locked;
 	ESignalStatus CurrentSignalStatus = ESignalStatus::Lost;
 	EDockingMonitorState CurrentMonitorState = EDockingMonitorState::Offline;
-	void SetMonitorState(EDockingMonitorState NewState);
 	
+	FVector PreImpactVelocity;
+
+	void SetMonitorState(EDockingMonitorState NewState);
 };

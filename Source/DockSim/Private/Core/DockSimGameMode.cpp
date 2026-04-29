@@ -17,10 +17,9 @@ void ADockSimGameMode::BeginPlay()
 	// 1. Encontra a nave do jogador no mapa
 	ASpaceShipPawn* PlayerShip = Cast<ASpaceShipPawn>(UGameplayStatics::GetPlayerPawn(this, 0));
 
-	if (PlayerShip && PlayerShip->HullComponent)
+	if (PlayerShip && PlayerShip->GetHullComponent())
 	{
-		// 2. O GameMode escuta o evento de morte!
-		PlayerShip->HullComponent->OnHullCritical.AddDynamic(this, &ADockSimGameMode::OnShipDestroyed);
+		PlayerShip->GetHullComponent()->OnHullCritical.AddDynamic(this, &ADockSimGameMode::OnShipDestroyed);
 	}
 }
 

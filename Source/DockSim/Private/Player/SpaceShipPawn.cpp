@@ -8,24 +8,22 @@
 #include "Components/SpaceMovementComponent.h"
 #include "Components/SpaceResourceComponent.h"
 #include "Components/SpaceTelemetryComponent.h"
-#include "Components/WidgetComponent.h"
+#include "Components/WidgetComponent.h" 
 #include "Core/SpacePlayerController.h"
 #include "DockingPort/SpaceDockingPort.h"
-
+#include "Engine/TextureRenderTarget2D.h"
+#include "Kismet/GameplayStatics.h"
+#include "UI/DockingHUDWidget.h"
+#include "DrawDebugHelpers.h"
+#include "Components/SpaceAudioComponent.h"
 
 ASpaceShipPawn::ASpaceShipPawn()
 {
 	PrimaryActorTick.bCanEverTick = true;	
-	
 	ShipMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
-    
-	// 2. Definimos a Malha como a "Raiz" (O centro físico de gravidade e colisão do Pawn)
 	RootComponent = ShipMesh;
-
-	// 3. Criamos a Câmera do Cockpit
+	
 	CockpitCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("CockpitCamera"));
-    
-	// 4. Anexamos (colamos) a câmera na malha. Se a nave girar, a câmera gira junto!
 	CockpitCamera->SetupAttachment(ShipMesh);
 	
 	MovementComponent = CreateDefaultSubobject<USpaceMovementComponent>(TEXT("MovementComponent"));
@@ -33,61 +31,45 @@ ASpaceShipPawn::ASpaceShipPawn()
 	ResourceComponent = CreateDefaultSubobject<USpaceResourceComponent>(TEXT("ResourceComponent"));
 	HullComponent = CreateDefaultSubobject<USpaceHullComponent>(TEXT("HullComponent"));
 	CFTVSystem = CreateDefaultSubobject<UCFTVComponent>(TEXT("CFTV_System"));
-	
-	//Criação Física das Câmeras (Todas nascem DESLIGADAS)
-	// Cam_Front = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Front"));
-	// Cam_Front->SetupAttachment(RootComponent);
-	// Cam_Front->bCaptureEveryFrame = false; 
-	//
-	// Cam_Rear = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Rear"));
-	// Cam_Rear->SetupAttachment(RootComponent);
-	// Cam_Rear->bCaptureEveryFrame = false;
-	//
-	// Cam_Left = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Left"));
-	// Cam_Left->SetupAttachment(RootComponent);
-	// Cam_Left->bCaptureEveryFrame = false;
-	//
-	// Cam_Right = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Right"));
-	// Cam_Right->SetupAttachment(RootComponent);
-	// Cam_Right->bCaptureEveryFrame = false;
-
-	DockingScreenMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DockingScreen"));
-	DockingScreenMesh->SetupAttachment(ShipMesh);
+	AudioSystem = CreateDefaultSubobject<USpaceAudioComponent>(TEXT("AudioSystem"));
 	
 	DockingPoint = CreateDefaultSubobject<USceneComponent>(TEXT("DockingPoint"));
 	DockingPoint->SetupAttachment(ShipMesh);
+
 	Cam_Docking = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("Cam_Docking"));
 	Cam_Docking->SetupAttachment(DockingPoint);
 	Cam_Docking->bCaptureEveryFrame = false;
 	Cam_Docking->bCaptureOnMovement = false;
-	
-	LeftDisplayComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("LeftDisplay"));
-	LeftDisplayComp->SetupAttachment(ShipMesh); 
-	LeftDisplayComp->SetWidgetSpace(EWidgetSpace::World);
-	LeftDisplayComp->SetDrawSize(FVector2D(512.0f, 512.0f));
-	
-	RightDisplayComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("RightDisplay"));
-	RightDisplayComp->SetupAttachment(ShipMesh); 
-	RightDisplayComp->SetWidgetSpace(EWidgetSpace::World);
-	RightDisplayComp->SetDrawSize(FVector2D(512.0f, 512.0f));
+	Cam_Docking->CaptureSource = SCS_FinalColorLDR;
 	
 	SensorShield = CreateDefaultSubobject<USphereComponent>(TEXT("SensorShield"));
 	SensorShield->SetupAttachment(ShipMesh);
-    
 	SensorShield->InitSphereRadius(500.0f); 
 	SensorShield->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 	SensorShield->SetGenerateOverlapEvents(true);
 
+	// ==========================================
+	// MONITORES FÍSICOS 3D
+	// ==========================================
+	// 1. A Carcaça do Monitor (Plástico)
+	DockingScreenMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DockingScreenMesh"));
+	DockingScreenMesh->SetupAttachment(ShipMesh); // Anexado à nave (ou à câmera se preferir que siga o rosto)
+
+	// 2. A Tela Digital (Widget)
+	DockingMonitorComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("DockingMonitorComp"));
+	DockingMonitorComp->SetupAttachment(DockingScreenMesh); // Anexado à carcaça do monitor
+	DockingMonitorComp->SetWidgetSpace(EWidgetSpace::World);
+	DockingMonitorComp->SetDrawSize(FVector2D(1024.0f, 1024.0f)); // Resolução alta
+	DockingMonitorComp->SetVisibility(false); // Começa desligado
 }
 
 void ASpaceShipPawn::BeginPlay()
 {
 	Super::BeginPlay();
+
 	if (CFTVSystem)
 	{
-		// CFTVSystem->InitializeCameras(Cam_Front, Cam_Rear, Cam_Left, Cam_Right, Cam_Docking);
 		CFTVSystem->InitializeDockingCamera(Cam_Docking);
-		CFTVSystem->InitializeDockingScreen(DockingScreenMesh);
 	}
 	
 	if (ShipMesh)
@@ -95,7 +77,6 @@ void ASpaceShipPawn::BeginPlay()
 		ShipMesh->OnComponentHit.AddDynamic(this, &ASpaceShipPawn::OnShipHit);
 	}
 
-	// CONECTA OS DELEGATES DO COMPONENTE ÀS FUNÇÕES DA NAVE
 	if (HullComponent)
 	{
 		HullComponent->OnHullWarning.AddDynamic(this, &ASpaceShipPawn::HandleHullWarning);
@@ -106,6 +87,32 @@ void ASpaceShipPawn::BeginPlay()
 	{
 		SensorShield->OnComponentBeginOverlap.AddDynamic(this, &ASpaceShipPawn::OnSensorOverlap);
 	}
+
+	// ==========================================
+	// CÂMERA DINÂMICA LIGADA AO MONITOR 3D
+	// ==========================================
+	
+	// 1. Cria o Render Target de forma dinâmica e segura
+	DynamicDockingRT = NewObject<UTextureRenderTarget2D>(this);
+	DynamicDockingRT->RenderTargetFormat = RTF_RGBA8;
+	DynamicDockingRT->InitAutoFormat(1024, 1024); 
+	DynamicDockingRT->UpdateResourceImmediate(true);
+
+	// 2. Conecta a câmara da nave ao Render Target
+	if (Cam_Docking)
+	{
+		Cam_Docking->TextureTarget = DynamicDockingRT;
+		Cam_Docking->HiddenActors.Add(this);
+	}
+
+	// 3. Puxa a interface de dentro do componente 3D e injeta o vídeo nela
+	if (DockingMonitorComp)
+	{
+		if (UDockingHUDWidget* Monitor3D = Cast<UDockingHUDWidget>(DockingMonitorComp->GetUserWidgetObject()))
+		{
+			Monitor3D->SetCameraFeed(DynamicDockingRT);
+		}
+	}
 }
 
 void ASpaceShipPawn::Tick(float DeltaTime)
@@ -114,22 +121,46 @@ void ASpaceShipPawn::Tick(float DeltaTime)
 
 	if (!CockpitCamera) return;
 
-	// ==========================================
-	// A MOLA DE RETORNO DO PESCOÇO (Free Look)
-	// ==========================================
+	// Regresso suave da cabeça (Free Look)
 	if (CurrentVisionMode != EPilotVisionMode::FreeLook)
 	{
 		FRotator CurrentHeadRot = CockpitCamera->GetRelativeRotation();
     
-		// Se a cabeça não estiver perfeitamente reta (ZeroRotator)
 		if (!CurrentHeadRot.Equals(FRotator::ZeroRotator, 0.1f))
 		{
-			// Volta a cabeça para frente (0,0,0) suavemente
 			FRotator SmoothReturn = FMath::RInterpTo(CurrentHeadRot, FRotator::ZeroRotator, DeltaTime, 10.0f);
 			CockpitCamera->SetRelativeRotation(SmoothReturn);
 		}
 	}
-	
+
+	// ==========================================
+	// ATUALIZAÇÃO DA TELEMETRIA NO MONITOR 3D
+	// ==========================================
+	if (CurrentFlightState == EShipFlightState::LandingMode && DockingMonitorComp && DockingMonitorComp->IsVisible())
+	{
+		// 1. Pega TUDO do componente de telemetria
+		FSpaceTelemetryData CurrentData = TelemetryComponent->GetLatestTelemetry();
+
+		FString StatusText = TEXT("[ MODO DE POUSO ATIVO ]");
+		FLinearColor TextColor = FLinearColor::Yellow;
+
+		if (CurrentData.VelTotal > MaxSafeImpactSpeed)
+		{
+			StatusText = TEXT("[ PERIGO: ALTA VELOCIDADE DE APROXIMAÇÃO ]");
+			TextColor = FLinearColor::Red;
+		}
+		else if (CurrentData.TotalAlignment > 95.0f && CurrentData.Distance < 2.0f)
+		{
+			StatusText = TEXT("[ ALINHAMENTO PERFEITO: MANTENHA ]");
+			TextColor = FLinearColor::Green;
+		}
+
+		// 2. Envia os dados para a tela 3D (ATENÇÃO: Garanta que no Widget a função receba o Alignment!)
+		if (UDockingHUDWidget* Monitor3D = Cast<UDockingHUDWidget>(DockingMonitorComp->GetUserWidgetObject()))
+		{
+			Monitor3D->UpdateTelemetry(CurrentData.Distance, CurrentData.VelTotal, CurrentData.TotalAlignment, StatusText, TextColor);
+		}
+	}
 }
 
 void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -168,28 +199,23 @@ void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 		}
 		if (FreeLookAction)
 		{
-			EnhancedInputComponent->BindAction(FreeLookAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnFreeLookStart);
-			EnhancedInputComponent->BindAction(FreeLookAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::OnFreeLookEnd);
-			EnhancedInputComponent->BindAction(FreeLookAction, ETriggerEvent::Canceled, this, &ASpaceShipPawn::OnFreeLookEnd);
-		}
-		if (ToggleCameraAction)
-		{
-			EnhancedInputComponent->BindAction(ToggleCameraAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnToggleCameraPressed);
+			EnhancedInputComponent->BindAction(FreeLookAction, ETriggerEvent::Started, this, &ASpaceShipPawn::ToggleFreeLook);
 		}
 		if (DockAction)
 		{
 			EnhancedInputComponent->BindAction(DockAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnDockButtonPressed);
 		}
+		if (EscAction)
+		{
+			EnhancedInputComponent->BindAction(EscAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnPausePressed);
+		}
 	}
 }
 
-
 void ASpaceShipPawn::OnThrottle(const FInputActionValue& Value)
 {
-	float ScrollValue = Value.Get<float>(); // O scroll retorna 1.0 (cima) ou -1.0 (baixo)
-
-	if (CurrentFlightState != EShipFlightState::FreeFlying) return;
-	
+	float ScrollValue = Value.Get<float>();
+	if (CurrentFlightState == EShipFlightState::Docked || CurrentFlightState == EShipFlightState::Disabled) return;
 	if (MovementComponent)
 	{
 		MovementComponent->AdjustThrottle(ScrollValue * 0.1f); 
@@ -199,43 +225,32 @@ void ASpaceShipPawn::OnThrottle(const FInputActionValue& Value)
 void ASpaceShipPawn::Move(const FInputActionValue& Value)
 {
 	FVector MoveAxisVector = Value.Get<FVector>();
-
-	if (CurrentFlightState != EShipFlightState::FreeFlying) return;
-	
+	if (CurrentFlightState == EShipFlightState::Docked || CurrentFlightState == EShipFlightState::Disabled) return;
 	if (MovementComponent)
 	{
-		// 1. DESEMPACOTAMENTO:
-		// Por padrão no Enhanced Input, o eixo Y (Cima/Baixo) recebe o W e S.
-		// O eixo X (Esquerda/Direita) recebe o A e D.
-		float ForwardInput = MoveAxisVector.Y; // W/S
-		float RightInput   = MoveAxisVector.X; // A/D
-		float UpInput      = MoveAxisVector.Z; // Espaço/Ctrl 
+		float ForwardInput = MoveAxisVector.Y; 
+		float RightInput   = MoveAxisVector.X; 
+		float UpInput      = MoveAxisVector.Z; 
 
-		// 2. ENVIANDO PARA O MÚSCULO:
-		// Empacotamos na regra clássica da Unreal: X = Frente, Y = Lados, Z = Cima
 		MovementComponent->RequestTranslation(FVector(ForwardInput, RightInput, UpInput));
 	}
 }
 
-// -------------------------------------------------------------
-// A MÁQUINA DE ESTADOS (Transições Claras e Livres de Bugs)
-// -------------------------------------------------------------
 void ASpaceShipPawn::OnToggleYaw(const FInputActionValue& Value)
 {
-	if (CurrentFlightState != EShipFlightState::FreeFlying) return;
+	if (CurrentFlightState == EShipFlightState::Docked || CurrentFlightState == EShipFlightState::Disabled) return;
     switch (CurrentRotState)
     {
         case ERotationMode::Locked:      CurrentRotState = ERotationMode::YawControl; break;
-        case ERotationMode::RollControl:  CurrentRotState = ERotationMode::YawAndRollControl; break; // Se Roll estava ligado, liga os dois!
-        case ERotationMode::YawControl:   CurrentRotState = ERotationMode::Locked; break;     // Se já estava ligado, desliga
-        case ERotationMode::YawAndRollControl:  CurrentRotState = ERotationMode::RollControl; break; // Desliga o Yaw, sobra só o Roll
+        case ERotationMode::RollControl:  CurrentRotState = ERotationMode::YawAndRollControl; break; 
+        case ERotationMode::YawControl:   CurrentRotState = ERotationMode::Locked; break;     
+        case ERotationMode::YawAndRollControl:  CurrentRotState = ERotationMode::RollControl; break; 
     }
 }
 
 void ASpaceShipPawn::OnToggleRoll(const FInputActionValue& Value)
 {
-	if (CurrentFlightState != EShipFlightState::FreeFlying) return;
-	
+	if (CurrentFlightState == EShipFlightState::Docked || CurrentFlightState == EShipFlightState::Disabled) return;
     switch (CurrentRotState)
     {
         case ERotationMode::Locked:      CurrentRotState = ERotationMode::RollControl; break;
@@ -245,16 +260,10 @@ void ASpaceShipPawn::OnToggleRoll(const FInputActionValue& Value)
     }
 }
 
-// -------------------------------------------------------------
-// APLICAÇÃO DO INPUT
-// -------------------------------------------------------------
 void ASpaceShipPawn::Look(const FInputActionValue& Value)
 {
     FVector2D LookAxisVector = Value.Get<FVector2D>();
-
-    // ==========================================
-    // 1. O PESCOÇO DO PILOTO (Sempre funciona!)
-    // ==========================================
+	
     if (CurrentVisionMode == EPilotVisionMode::FreeLook)
     {
         FRotator CurrentHeadRot = CockpitCamera->GetRelativeRotation();
@@ -266,20 +275,11 @@ void ASpaceShipPawn::Look(const FInputActionValue& Value)
         CurrentHeadRot.Yaw = FMath::Clamp(NewYaw, -MaxLookLeftRight, MaxLookLeftRight);
 
         CockpitCamera->SetRelativeRotation(CurrentHeadRot);
-        
-        return; // O Input morre aqui.
+        return; 
     }
 	
-    // ==========================================
-    // 2. A TRAVA DA ESTAÇÃO (Segurança)
-    // ==========================================
-    // Se a nave estiver atracada, o código é abortado AQUI. 
-    // Os motores não recebem energia.
-    if (CurrentFlightState != EShipFlightState::FreeFlying) return;
+	if (CurrentFlightState == EShipFlightState::Docked || CurrentFlightState == EShipFlightState::Disabled) return;
 
-    // ==========================================
-    // 3. OS MOTORES DA NAVE (Pitch, Yaw, Roll)
-    // ==========================================
     if (MovementComponent)
     {
         float PitchInput = LookAxisVector.Y; 
@@ -307,59 +307,19 @@ void ASpaceShipPawn::Look(const FInputActionValue& Value)
 
 void ASpaceShipPawn::OnPrecisionModeStart(const FInputActionValue& Value)
 {
-	if (MovementComponent) 
-	{
-		MovementComponent->SetThrustPowerMode(EThrustPowerMode::Precision);
-	}
+	if (MovementComponent) MovementComponent->SetThrustPowerMode(EThrustPowerMode::Precision);
 }
 
 void ASpaceShipPawn::OnPrecisionModeEnd(const FInputActionValue& Value)
 {
-	if (MovementComponent) 
-	{
-		MovementComponent->SetThrustPowerMode(EThrustPowerMode::Standard);
-	}
+	if (MovementComponent) MovementComponent->SetThrustPowerMode(EThrustPowerMode::Standard);
 }
 
-void ASpaceShipPawn::OnFreeLookStart(const FInputActionValue& Value)
+void ASpaceShipPawn::ToggleFreeLook(const FInputActionValue& Value)
 {
-	CurrentVisionMode = EPilotVisionMode::FreeLook;
+	CurrentVisionMode = (CurrentVisionMode == EPilotVisionMode::FreeLook) ? EPilotVisionMode::Standard : EPilotVisionMode::FreeLook;
 }
 
-void ASpaceShipPawn::OnFreeLookEnd(const FInputActionValue& Value)
-{
-	if (CurrentVisionMode == EPilotVisionMode::FreeLook)
-	{
-		CurrentVisionMode = EPilotVisionMode::Standard;
-	}
-}
-
-// 1. QUANDO O JOGADOR APERTA O BOTÃO (TAB)
-void ASpaceShipPawn::OnToggleCameraPressed()
-{
-	switch (CurrentMonitorState)
-	{
-		case EDockingMonitorState::Offline:
-			// Se estava desligado e eu liguei, para onde ele vai? Depende do sinal!
-			if (CurrentSignalStatus == ESignalStatus::Acquired)
-			{
-				SetMonitorState(EDockingMonitorState::Active);
-			}
-			else
-			{
-				SetMonitorState(EDockingMonitorState::Searching);
-			}
-			break;
-
-		case EDockingMonitorState::Searching:
-		case EDockingMonitorState::Active:
-			// Se o monitor já estava ligado (não importa em qual tela), o botão desliga.
-			SetMonitorState(EDockingMonitorState::Offline);
-			break;
-	}
-}
-
-// 2. QUANDO A NAVE ENTRA OU SAI DA ESTAÇÃO
 void ASpaceShipPawn::UpdateDockingSignal(ESignalStatus NewStatus)
 {
 	CurrentSignalStatus = NewStatus;
@@ -370,59 +330,40 @@ void ASpaceShipPawn::UpdateDockingSignal(ESignalStatus NewStatus)
 	}
 }
 
-// 3. O EXECUTOR DE ESTADOS (Gerencia Hardware e Câmera)
-void ASpaceShipPawn::SetMonitorState(EDockingMonitorState NewState)
-{
-	// Evita processamento duplo se o estado já for o mesmo
-	if (CurrentMonitorState == NewState) return; 
-
-	CurrentMonitorState = NewState;
-
-	// Otimização de Performance da Câmera (O CFTV só trabalha se a tela estiver Active)
-	if (CFTVSystem)
-	{
-		if (CurrentMonitorState == EDockingMonitorState::Active)
-		{
-			CFTVSystem->ToggleCameraMode(); // Liga a Câmera (Idealmente crie um SetCameraMode no CFTV)
-		}
-		else 
-		{
-			// Se foi para Offline ou Searching, a câmera deve parar de renderizar
-			if (CFTVSystem->GetCurrentMode() == ECameraSystemMode::DockingMode)
-			{
-				CFTVSystem->ToggleCameraMode(); 
-			}
-		}
-	}
-}
-
 void ASpaceShipPawn::OnDockButtonPressed(const FInputActionValue& Value)
 {
     if (CurrentFlightState == EShipFlightState::Disabled) return;
-
-    // Transições de Estado Puras
+	
     switch (CurrentFlightState)
     {
         case EShipFlightState::Docked:
-            // 1. Solta a nave
             ShipMesh->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
             ShipMesh->SetSimulatePhysics(true);
             ShipMesh->WakeAllRigidBodies();
-            
-            // 2. Volta para Voo Livre
+
             CurrentFlightState = EShipFlightState::FreeFlying;
+            if (DockingMonitorComp) DockingMonitorComp->SetVisibility(false);
+
             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("TRAVAS LIBERADAS. Voo Livre."));
             break;
 
         case EShipFlightState::FreeFlying:
-            // 1. Armar sistema de pouso
             CurrentFlightState = EShipFlightState::LandingMode;
+            
+            // LIGA O MONITOR FÍSICO E A CÂMARA
+            if (DockingMonitorComp) DockingMonitorComp->SetVisibility(true);
+            if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = true;
+
             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("MODO DE POUSO: Grampos armados. Aproxime-se do berço."));
             break;
 
         case EShipFlightState::LandingMode:
-            // 1. Desistir do pouso e guardar os grampos
             CurrentFlightState = EShipFlightState::FreeFlying;
+            
+            // DESLIGA O MONITOR FÍSICO E A CÂMARA
+            if (DockingMonitorComp) DockingMonitorComp->SetVisibility(false);
+            if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = false;
+
             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange, TEXT("MODO DE POUSO ABORTADO. Grampos recolhidos."));
             break;
     }
@@ -435,44 +376,37 @@ void ASpaceShipPawn::ExecuteHardcoreDocking(ASpaceDockingPort* TargetPort)
 	ShipMesh->SetSimulatePhysics(false);
 
 	FAttachmentTransformRules DockingRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
-
-	// AGORA: Usamos o nome do componente "DockingPoint" como se fosse um Socket.
-	// A Unreal entende que deve alinhar este componente com a âncora da estação.
 	ShipMesh->AttachToComponent(TargetPort->DockingAnchor, DockingRules, FName("DockingPoint"));
 
 	CurrentFlightState = EShipFlightState::Docked;
+	
+	// Desliga a tela do painel após o docking ser concluído
+	if (DockingMonitorComp) DockingMonitorComp->SetVisibility(false);
+	if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = false;
+
+	if (ASpacePlayerController* PC = Cast<ASpacePlayerController>(GetController()))
+	{
+		PC->SetMissionState(EMissionState::Victory);
+	}
 	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("DOCKING PERFEITO!"));
 }
 
-// ==========================================
-// A FOTO DA CAIXA PRETA (Ocorre milissegundos antes da batida)
-// ==========================================
 void ASpaceShipPawn::OnSensorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	// Ignora a nós mesmos ou colisões fantasmas
 	if (!OtherActor || OtherActor == this) return;
-
-	// TIRA A FOTO! Guarda a velocidade exata da nave antes do metal amassar
 	PreImpactVelocity = ShipMesh->GetComponentVelocity();
 }
 
-// ==========================================
-// O IMPACTO DO METAL (A Batida Física Real)
-// ==========================================
 void ASpaceShipPawn::OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	if (CurrentFlightState == EShipFlightState::Docked) return;
-
-	// 1. Em vez de perguntar a velocidade para a Unreal agora, nós usamos a FOTO da Caixa Preta!
+	
 	FVector RelativeVelocity = PreImpactVelocity;
-    
-	// 2. Subtrai a velocidade da estação (se ela estiver se movendo)
 	if (OtherComp && OtherComp->Mobility != EComponentMobility::Static) 
 	{
 		RelativeVelocity -= OtherComp->GetComponentVelocity(); 
 	}
 
-	// 3. A Matemática Inquebrável (Projeta a velocidade contra a parede)
 	float ImpactSpeedCM = FMath::Abs(FVector::DotProduct(RelativeVelocity, -Hit.ImpactNormal));
 	float ImpactSpeedMPS = ImpactSpeedCM / 100.0f;
 
@@ -481,7 +415,6 @@ void ASpaceShipPawn::OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("ESCUDO SENSOR: Impacto calculado a %.1f m/s"), ImpactSpeedMPS));
 	}
 
-	// 4. Passa a Velocidade Pura para o Casco avaliar
 	if (HullComponent)
 	{
 		HullComponent->ProcessImpact(ImpactSpeedMPS);
@@ -490,35 +423,32 @@ void ASpaceShipPawn::OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 
 void ASpaceShipPawn::HandleHullWarning(float ImpactSpeed)
 {
-	// Feedback local da nave (ex: soltar faíscas, tocar som de metal amassando)
-	if (GEngine) 
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, FString::Printf(TEXT("ALERTA DA NAVE: Casco avariado a %.1f m/s."), ImpactSpeed));
-	}
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, FString::Printf(TEXT("ALERTA DA NAVE: Casco avariado a %.1f m/s."), ImpactSpeed));
 }
 
 void ASpaceShipPawn::HandleHullCritical()
 {
-	// 1. MUDA O ESTADO (Isso automaticamente bloqueia o WASD, Throttle e Mouse!)
 	CurrentFlightState = EShipFlightState::Disabled;
 
-	// 2. FEEDBACK NA TELA
-	if (GEngine) 
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Red, TEXT("SISTEMAS CRÍTICOS: Perda total de controle de voo."));
-	}
+	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Red, TEXT("SISTEMAS CRÍTICOS: Perda total de controlo de voo."));
 
-	// 3. FÍSICA DE DERIVA (Opcional, mas muito legal)
-	// Dá um solavanco na nave para ela ficar girando sem controle no vácuo
 	if (ShipMesh)
 	{
-		// Desliga a inércia linear para ela não voar infinitamente para longe
 		ShipMesh->SetPhysicsLinearVelocity(FVector::ZeroVector);
-		
-		// Aplica um giro caótico e irreversível
 		float SpinX = FMath::RandRange(-30.0f, 30.0f);
 		float SpinY = FMath::RandRange(-30.0f, 30.0f);
 		float SpinZ = FMath::RandRange(-30.0f, 30.0f);
 		ShipMesh->SetPhysicsAngularVelocityInDegrees(FVector(SpinX, SpinY, SpinZ));
+	}
+	if (ASpacePlayerController* PC = Cast<ASpacePlayerController>(GetController()))
+	{
+		PC->SetMissionState(EMissionState::GameOver);
+	}
+}
+void ASpaceShipPawn::OnPausePressed(const FInputActionValue& Value)
+{
+	if (ASpacePlayerController* PC = Cast<ASpacePlayerController>(GetController()))
+	{
+		PC->TogglePauseMenu();
 	}
 }

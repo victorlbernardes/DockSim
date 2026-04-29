@@ -38,6 +38,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Flight Dynamics")
 	float GetMasterPowerScale() const { return MasterPowerScale; }
 	
+	UFUNCTION(BlueprintPure)
+	FVector GetTargetRotationInput() const { return TargetRotationInput; }
+	
+	FVector GetTargetTranslationInput() const { return TargetInput; }
+	
 	UPROPERTY(BlueprintAssignable, Category = "Ship|Events")
 	FOnThrustModeChanged OnThrustModeChanged;
 	

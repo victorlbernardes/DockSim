@@ -61,7 +61,7 @@ ASpaceDockingPort::ASpaceDockingPort()
 	PrecisionDockingVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("PrecisionDockingVolume"));
 	PrecisionDockingVolume->SetupAttachment(DockingAnchor);
     
-	PrecisionDockingVolume->SetBoxExtent(FVector(100.0f, 100.0f, 50.0f)); 
+	PrecisionDockingVolume->SetBoxExtent(FVector(4.0f, 50.0f, 50.0f)); 
 	PrecisionDockingVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	PrecisionDockingVolume->SetCollisionResponseToAllChannels(ECR_Overlap);
 }

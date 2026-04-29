@@ -19,6 +19,7 @@ struct FSpaceTelemetryData
 	UPROPERTY(BlueprintReadOnly) float VelForward = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float VelRight   = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float VelUp      = 0.0f;
+	UPROPERTY(BlueprintReadOnly) float VelTotal = 0.0f;
 
 	// Atitude (Graus)
 	UPROPERTY(BlueprintReadOnly) float Pitch = 0.0f;
@@ -26,6 +27,10 @@ struct FSpaceTelemetryData
 	UPROPERTY(BlueprintReadOnly) float Roll  = 0.0f;
     
 	UPROPERTY(BlueprintReadOnly) EThrustPowerMode ThrustMode = EThrustPowerMode::Standard;
+
+	// --- NOVOS DADOS PARA O MONITOR DE DOCKING ---
+	UPROPERTY(BlueprintReadOnly) float Distance = 0.0f;
+	UPROPERTY(BlueprintReadOnly) float TotalAlignment = 0.0f;
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )

@@ -3,6 +3,7 @@
 #include "DockingPort/SpaceDockingPort.h"
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"
+#include "Player/SpaceShipPawn.h"
 
 USpaceTelemetryComponent::USpaceTelemetryComponent()
 {
@@ -21,52 +22,32 @@ void USpaceTelemetryComponent::BeginPlay()
 
 void USpaceTelemetryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
-	ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
+    AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
+    ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
 
-	if (TargetPort && TargetPort->DockingAnchor)
-	{
-		FVector ShipLoc = GetOwner()->GetActorLocation();
-		FVector PortLoc = TargetPort->DockingAnchor->GetComponentLocation();
-		FVector PortForward = TargetPort->DockingAnchor->GetForwardVector();
-		FVector ShipForward = GetOwner()->GetActorForwardVector();
+    if (TargetPort && TargetPort->DockingAnchor)
+    {
+       // --- BUSCA O PONTO DE DOCKING ESPECÍFICO ---
+       FVector ShipLoc;
+       FVector ShipForward;
 
-		// 1. DISTÂNCIA ESCALAR (Unidade: Metros)
-		float DistanceMeters = FVector::Dist(ShipLoc, PortLoc) / 100.0f;
-
-		// 2. ALINHAMENTO DE ROTAÇÃO (Pitch/Yaw)
-		// Verifica se o nariz da nave está paralelo ao eixo do porto
-		// Usamos -PortForward porque a nave deve olhar CONTRA o porto para acoplar
-		float RotDot = FVector::DotProduct(ShipForward, -PortForward);
-		float RotPercent = FMath::Clamp(RotDot * 100.0f, 0.0f, 100.0f);
-
-		// 3. ALINHAMENTO DE TRANSLAÇÃO (O "Corredor")
-		// Criamos um vetor que vai do porto até à nave e normalizamos
-		FVector DirToShip = (ShipLoc - PortLoc).GetSafeNormal();
-		
-		// Comparamos: A nave está no "trilho" que sai do porto?
-		// Se a nave estiver exatamente na frente, DirToShip será igual ao PortForward (Dot = 1.0)
-		float PathDot = FVector::DotProduct(PortForward, DirToShip);
-		float PathPercent = FMath::Clamp(PathDot * 100.0f, 0.0f, 100.0f);
-
-		// 4. PRECISÃO TOTAL (Cálculo Punitivo)
-		// Multiplicamos os dois. Se um estiver em 0%, o total é 0%. 
-		// Isso obriga o jogador a ser perfeito em ambos.
-		float TotalAlignment = (RotPercent * PathPercent) / 100.0f;
-
-		// 5. FEEDBACK VISUAL (Logs)
-		if (GEngine)
-		{
-			FColor DisplayColor = (TotalAlignment > 95.0f) ? FColor::Cyan : FColor::Yellow;
-			
-			FString DebugMsg = FString::Printf(TEXT("DIST: %.2fm | ROTAÇÃO: %.1f%% | CORREDOR: %.1f%% | TOTAL: %.1f%%"), 
-				DistanceMeters, RotPercent, PathPercent, TotalAlignment);
-			
-			GEngine->AddOnScreenDebugMessage(2, 0.0f, DisplayColor, DebugMsg);
-		}
-	}
+       // Tentamos encontrar o DockingPoint definido na nave (ASpaceShipPawn)
+       if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(GetOwner()))
+       {
+          // Usamos o componente que você criou (onde está a câmera)
+          USceneComponent* DPoint = Ship->GetDockingPoint(); 
+          ShipLoc = DPoint->GetComponentLocation();
+          ShipForward = DPoint->GetForwardVector();
+       }
+       else
+       {
+          // Fallback caso não seja a nave do jogador
+          ShipLoc = GetOwner()->GetActorLocation();
+          ShipForward = GetOwner()->GetActorForwardVector();
+       }
+    }
 }
 
 float USpaceTelemetryComponent::ApplyPsychologicalZero(float Value) 
@@ -80,17 +61,56 @@ FSpaceTelemetryData USpaceTelemetryComponent::GetLatestTelemetry()
 	FSpaceTelemetryData Data;
 	AActor* Owner = GetOwner();
 	UPrimitiveComponent* RootMesh = Cast<UPrimitiveComponent>(Owner->GetRootComponent());
-
 	USpaceMovementComponent* MovementComp = Owner->FindComponentByClass<USpaceMovementComponent>();
+
 	if (RootMesh)
 	{
-		FVector GlobalVelocity = RootMesh->GetPhysicsLinearVelocity();
-        
-		// Transformamos velocidade Global em Local (O Zero Psicológico continua aqui)
-		Data.VelForward = ApplyPsychologicalZero(FVector::DotProduct(GlobalVelocity, Owner->GetActorForwardVector()) / 100.f);
-		Data.VelRight   = ApplyPsychologicalZero(FVector::DotProduct(GlobalVelocity, Owner->GetActorRightVector()) / 100.f);
-		Data.VelUp      = ApplyPsychologicalZero(FVector::DotProduct(GlobalVelocity, Owner->GetActorUpVector()) / 100.f);
+		// 1. Pega a velocidade global da SUA nave
+		FVector ShipGlobalVelocity = RootMesh->GetPhysicsLinearVelocity();
+		FVector TargetGlobalVelocity = FVector::ZeroVector;
 
+		// 2. Descobre a velocidade global do ALVO (A Estação)
+		AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
+		if (ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor))
+        		{
+        			if (UPrimitiveComponent* PortRoot = Cast<UPrimitiveComponent>(TargetPort->GetRootComponent()))
+        			{
+        				TargetGlobalVelocity = PortRoot->GetPhysicsLinearVelocity();
+        			}
+        
+        			// --- NOVO: Cálculo de Distância e Alinhamento usando o DockingPoint ---
+        			USceneComponent* DPoint = nullptr;
+        			if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(Owner)) 
+        			{ 
+        				DPoint = Ship->GetDockingPoint(); 
+        			}
+                    
+        			FVector ShipLoc = DPoint ? DPoint->GetComponentLocation() : Owner->GetActorLocation();
+        			FVector ShipForward = DPoint ? DPoint->GetForwardVector() : Owner->GetActorForwardVector();
+        			FVector PortLoc = TargetPort->DockingAnchor->GetComponentLocation();
+        			FVector PortForward = TargetPort->DockingAnchor->GetForwardVector();
+        
+        			Data.Distance = FVector::Dist(ShipLoc, PortLoc) / 100.0f;
+        
+        			float RotDot = FVector::DotProduct(ShipForward, -PortForward);
+        			float RotPercent = FMath::Clamp(RotDot * 100.0f, 0.0f, 100.0f);
+        			FVector DirToShip = (ShipLoc - PortLoc).GetSafeNormal();
+        			float PathDot = FVector::DotProduct(PortForward, DirToShip);
+        			float PathPercent = FMath::Clamp(PathDot * 100.0f, 0.0f, 100.0f);
+                    
+        			Data.TotalAlignment = (RotPercent * PathPercent) / 100.0f;
+        		}
+
+		// 3. A MÁGICA DA FÍSICA RELATIVA: Velocidade da Nave MENOS Velocidade do Alvo
+		FVector RelativeVelocity = ShipGlobalVelocity - TargetGlobalVelocity;
+        
+		// 4. Transformamos a velocidade RELATIVA em Local (O Zero Psicológico continua aqui)
+		// Agora, VelForward diz exatamente o quão rápido o BICO da nave está se aproximando do alvo!
+		Data.VelForward = ApplyPsychologicalZero(FVector::DotProduct(RelativeVelocity, Owner->GetActorForwardVector()) / 100.f);
+		Data.VelRight   = ApplyPsychologicalZero(FVector::DotProduct(RelativeVelocity, Owner->GetActorRightVector()) / 100.f);
+		Data.VelUp      = ApplyPsychologicalZero(FVector::DotProduct(RelativeVelocity, Owner->GetActorUpVector()) / 100.f);
+		Data.VelTotal = RelativeVelocity.Size() / 100.0f;
+		
 		// Rotações
 		FRotator CurrentRot = Owner->GetActorRotation();
 		Data.Pitch = CurrentRot.Pitch;
@@ -98,12 +118,13 @@ FSpaceTelemetryData USpaceTelemetryComponent::GetLatestTelemetry()
 		Data.Roll  = CurrentRot.Roll;
 	}
 
-	// 2. Transfere o estado do Enum de forma limpa e direta
+	// Transfere o estado do Enum de forma limpa e direta
 	if (MovementComp)
 	{
 		Data.ThrustMode = MovementComp->GetCurrentPowerMode();
 		Data.CurrentEngineScale = MovementComp->GetMasterPowerScale();
 	}
+	
 	return Data;
 }
 
