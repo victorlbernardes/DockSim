@@ -121,7 +121,6 @@ void ASpaceShipPawn::Tick(float DeltaTime)
 
 	if (!CockpitCamera) return;
 
-	// Regresso suave da cabeça (Free Look)
 	if (CurrentVisionMode != EPilotVisionMode::FreeLook)
 	{
 		FRotator CurrentHeadRot = CockpitCamera->GetRelativeRotation();
@@ -130,35 +129,6 @@ void ASpaceShipPawn::Tick(float DeltaTime)
 		{
 			FRotator SmoothReturn = FMath::RInterpTo(CurrentHeadRot, FRotator::ZeroRotator, DeltaTime, 10.0f);
 			CockpitCamera->SetRelativeRotation(SmoothReturn);
-		}
-	}
-
-	// ==========================================
-	// ATUALIZAÇÃO DA TELEMETRIA NO MONITOR 3D
-	// ==========================================
-	if (CurrentFlightState == EShipFlightState::LandingMode && DockingMonitorComp && DockingMonitorComp->IsVisible())
-	{
-		// 1. Pega TUDO do componente de telemetria
-		FSpaceTelemetryData CurrentData = TelemetryComponent->GetLatestTelemetry();
-
-		FString StatusText = TEXT("[ MODO DE POUSO ATIVO ]");
-		FLinearColor TextColor = FLinearColor::Yellow;
-
-		if (CurrentData.VelTotal > MaxSafeImpactSpeed)
-		{
-			StatusText = TEXT("[ PERIGO: ALTA VELOCIDADE DE APROXIMAÇÃO ]");
-			TextColor = FLinearColor::Red;
-		}
-		else if (CurrentData.TotalAlignment > 95.0f && CurrentData.Distance < 2.0f)
-		{
-			StatusText = TEXT("[ ALINHAMENTO PERFEITO: MANTENHA ]");
-			TextColor = FLinearColor::Green;
-		}
-
-		// 2. Envia os dados para a tela 3D (ATENÇÃO: Garanta que no Widget a função receba o Alignment!)
-		if (UDockingHUDWidget* Monitor3D = Cast<UDockingHUDWidget>(DockingMonitorComp->GetUserWidgetObject()))
-		{
-			Monitor3D->UpdateTelemetry(CurrentData.Distance, CurrentData.VelTotal, CurrentData.TotalAlignment, StatusText, TextColor);
 		}
 	}
 }
@@ -183,13 +153,11 @@ void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 		{
 			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Look);
 		}
-		if (ToggleYawAction)
-		{
-			EnhancedInputComponent->BindAction(ToggleYawAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnToggleYaw);
-		}
 		if (ToggleRollAction)
 		{
-			EnhancedInputComponent->BindAction(ToggleRollAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnToggleRoll);
+			EnhancedInputComponent->BindAction(ToggleRollAction, ETriggerEvent::Started,   this, &ASpaceShipPawn::OnToggleRoll);
+			EnhancedInputComponent->BindAction(ToggleRollAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::OnToggleRoll);
+			EnhancedInputComponent->BindAction(ToggleRollAction, ETriggerEvent::Canceled,  this, &ASpaceShipPawn::OnToggleRoll);
 		}
 		if (PrecisionAction)
 		{
@@ -236,28 +204,11 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
 	}
 }
 
-void ASpaceShipPawn::OnToggleYaw(const FInputActionValue& Value)
-{
-	if (CurrentFlightState == EShipFlightState::Docked || CurrentFlightState == EShipFlightState::Disabled) return;
-    switch (CurrentRotState)
-    {
-        case ERotationMode::Locked:      CurrentRotState = ERotationMode::YawControl; break;
-        case ERotationMode::RollControl:  CurrentRotState = ERotationMode::YawAndRollControl; break; 
-        case ERotationMode::YawControl:   CurrentRotState = ERotationMode::Locked; break;     
-        case ERotationMode::YawAndRollControl:  CurrentRotState = ERotationMode::RollControl; break; 
-    }
-}
-
 void ASpaceShipPawn::OnToggleRoll(const FInputActionValue& Value)
 {
-	if (CurrentFlightState == EShipFlightState::Docked || CurrentFlightState == EShipFlightState::Disabled) return;
-    switch (CurrentRotState)
-    {
-        case ERotationMode::Locked:      CurrentRotState = ERotationMode::RollControl; break;
-        case ERotationMode::YawControl:   CurrentRotState = ERotationMode::YawAndRollControl; break;
-        case ERotationMode::RollControl:  CurrentRotState = ERotationMode::Locked; break;
-        case ERotationMode::YawAndRollControl:  CurrentRotState = ERotationMode::YawControl; break;
-    }
+	bool bIsPressed = Value.Get<bool>();
+
+	CurrentRotState = bIsPressed ? ERotationMode::RollControl : ERotationMode::YawControl;
 }
 
 void ASpaceShipPawn::Look(const FInputActionValue& Value)
@@ -291,14 +242,9 @@ void ASpaceShipPawn::Look(const FInputActionValue& Value)
             case ERotationMode::YawControl:
                 YawInput = LookAxisVector.X;
                 break;
+                
             case ERotationMode::RollControl:
                 RollInput = -LookAxisVector.X;
-                break;
-            case ERotationMode::YawAndRollControl:
-                YawInput = LookAxisVector.X;
-                RollInput = -LookAxisVector.X;
-                break;
-            case ERotationMode::Locked:
                 break;
         }
     	MovementComponent->RequestRotation(FVector(PitchInput, YawInput, RollInput));
@@ -347,25 +293,29 @@ void ASpaceShipPawn::OnDockButtonPressed(const FInputActionValue& Value)
             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("TRAVAS LIBERADAS. Voo Livre."));
             break;
 
-        case EShipFlightState::FreeFlying:
-            CurrentFlightState = EShipFlightState::LandingMode;
+    case EShipFlightState::FreeFlying:
+    	CurrentFlightState = EShipFlightState::LandingMode;
             
-            // LIGA O MONITOR FÍSICO E A CÂMARA
-            if (DockingMonitorComp) DockingMonitorComp->SetVisibility(true);
-            if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = true;
+    	if (DockingMonitorComp) DockingMonitorComp->SetVisibility(true);
+    	if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = true;
 
-            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("MODO DE POUSO: Grampos armados. Aproxime-se do berço."));
-            break;
+    	// LIGA O TIMER: Chama 'UpdateDockingMonitor' a cada 0.1 segundos (10 FPS), em loop (true)
+    	GetWorldTimerManager().SetTimer(TelemetryTimerHandle, this, &ASpaceShipPawn::UpdateDockingMonitor, 0.1f, true);
 
-        case EShipFlightState::LandingMode:
-            CurrentFlightState = EShipFlightState::FreeFlying;
+    	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("MODO DE POUSO: Grampos armados."));
+    	break;
+
+    case EShipFlightState::LandingMode:
+    	CurrentFlightState = EShipFlightState::FreeFlying;
             
-            // DESLIGA O MONITOR FÍSICO E A CÂMARA
-            if (DockingMonitorComp) DockingMonitorComp->SetVisibility(false);
-            if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = false;
+    	if (DockingMonitorComp) DockingMonitorComp->SetVisibility(false);
+    	if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = false;
 
-            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange, TEXT("MODO DE POUSO ABORTADO. Grampos recolhidos."));
-            break;
+    	// DESLIGA O TIMER: Para de gastar CPU imediatamente
+    	GetWorldTimerManager().ClearTimer(TelemetryTimerHandle);
+
+    	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange, TEXT("MODO DE POUSO ABORTADO."));
+    	break;
     }
 }
 
@@ -392,6 +342,7 @@ void ASpaceShipPawn::ExecuteHardcoreDocking(ASpaceDockingPort* TargetPort)
 	{
 		AudioSystem->PlayDockingSuccessSound();
 	}
+	GetWorldTimerManager().ClearTimer(TelemetryTimerHandle);
 }
 
 void ASpaceShipPawn::OnSensorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -456,11 +407,39 @@ void ASpaceShipPawn::HandleHullCritical()
 	{
 		AudioSystem->PlayDockingFailSound();
 	}
+	GetWorldTimerManager().ClearTimer(TelemetryTimerHandle);
 }
 void ASpaceShipPawn::OnPausePressed(const FInputActionValue& Value)
 {
 	if (ASpacePlayerController* PC = Cast<ASpacePlayerController>(GetController()))
 	{
 		PC->TogglePauseMenu();
+	}
+}
+
+void ASpaceShipPawn::UpdateDockingMonitor()
+{
+	// Verificações de segurança (Boas práticas)
+	if (!TelemetryComponent || !DockingMonitorComp || !DockingMonitorComp->IsVisible()) return;
+
+	FSpaceTelemetryData CurrentData = TelemetryComponent->GetLatestTelemetry();
+
+	FString StatusText = TEXT("[ MODO DE POUSO ATIVO ]");
+	FLinearColor TextColor = FLinearColor::Yellow;
+
+	if (CurrentData.VelTotal > MaxSafeImpactSpeed)
+	{
+		StatusText = TEXT("[ PERIGO: ALTA VELOCIDADE DE APROXIMAÇÃO ]");
+		TextColor = FLinearColor::Red;
+	}
+	else if (CurrentData.TotalAlignment > 95.0f && CurrentData.Distance < 2.0f)
+	{
+		StatusText = TEXT("[ ALINHAMENTO PERFEITO: MANTENHA ]");
+		TextColor = FLinearColor::Green;
+	}
+
+	if (UDockingHUDWidget* Monitor3D = Cast<UDockingHUDWidget>(DockingMonitorComp->GetUserWidgetObject()))
+	{
+		Monitor3D->UpdateTelemetry(CurrentData.Distance, CurrentData.VelTotal, CurrentData.TotalAlignment, StatusText, TextColor);
 	}
 }
