@@ -93,14 +93,38 @@ void USpaceAudioComponent::UpdateProximityAlert(float DeltaTime)
     }
 }
 
-void USpaceAudioComponent::PlayDockingSound()
+void USpaceAudioComponent::PlayDockingSuccessSound()
 {
     if (Snd_DockingSuccess)
     {
-        // Toca o som de impacto do acoplamento com volume total
         UGameplayStatics::PlaySound2D(this, Snd_DockingSuccess, 1.0f);
         
-        // Opcional: Se você quiser, pode até forçar o motor a ficar mudo aqui
+        if (EngineAudioComp && EngineAudioComp->IsPlaying())
+        {
+            EngineAudioComp->Stop();
+        }
+    }
+}
+
+void USpaceAudioComponent::PlayDockingFailSound()
+{
+    if (Snd_DockingFail)
+    {
+        UGameplayStatics::PlaySound2D(this, Snd_DockingFail, 1.0f);
+        
+        if (EngineAudioComp && EngineAudioComp->IsPlaying())
+        {
+            EngineAudioComp->Stop();
+        }
+    }
+}
+
+void USpaceAudioComponent::PlayShipCrashSound()
+{
+    if (Snd_ShipCrash)
+    {
+        UGameplayStatics::PlaySound2D(this, Snd_ShipCrash, 1.0f);
+        
         if (EngineAudioComp && EngineAudioComp->IsPlaying())
         {
             EngineAudioComp->Stop();

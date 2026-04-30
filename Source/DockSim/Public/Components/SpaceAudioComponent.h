@@ -19,7 +19,9 @@ class DOCKSIM_API USpaceAudioComponent : public UActorComponent
 
 public:    
 	USpaceAudioComponent();
-	void PlayDockingSound();
+	void PlayDockingSuccessSound();
+	void PlayDockingFailSound();
+	void PlayShipCrashSound();
 
 protected:
 	virtual void BeginPlay() override;
@@ -36,6 +38,12 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Space Audio|Assets")
 	TObjectPtr<USoundBase> Snd_DockingSuccess;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Space Audio|Assets")
+	TObjectPtr<USoundBase> Snd_DockingFail;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Space Audio|Assets")
+	TObjectPtr<USoundBase> Snd_ShipCrash;
 
 private:
 	UPROPERTY() TObjectPtr<UAudioComponent> AmbienceAudioComp;
@@ -43,7 +51,6 @@ private:
 	UPROPERTY() class USpaceTelemetryComponent* TelemetryComp;
 	UPROPERTY() class USpaceMovementComponent* MovementComp;
 
-	// Máquina de Estados de Áudio
 	EEngineAudioState CurrentAudioState = EEngineAudioState::Silent;
 
 	void UpdateEngineAudio(float DeltaTime);

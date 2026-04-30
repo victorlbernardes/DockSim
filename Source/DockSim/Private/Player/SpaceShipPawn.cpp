@@ -390,7 +390,7 @@ void ASpaceShipPawn::ExecuteHardcoreDocking(ASpaceDockingPort* TargetPort)
 	}
 	if (AudioSystem)
 	{
-		AudioSystem->PlayDockingSound();
+		AudioSystem->PlayDockingSuccessSound();
 	}
 }
 
@@ -427,6 +427,10 @@ void ASpaceShipPawn::OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 void ASpaceShipPawn::HandleHullWarning(float ImpactSpeed)
 {
 	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, FString::Printf(TEXT("ALERTA DA NAVE: Casco avariado a %.1f m/s."), ImpactSpeed));
+	if (AudioSystem)
+	{
+		AudioSystem->PlayShipCrashSound();
+	}
 }
 
 void ASpaceShipPawn::HandleHullCritical()
@@ -446,6 +450,11 @@ void ASpaceShipPawn::HandleHullCritical()
 	if (ASpacePlayerController* PC = Cast<ASpacePlayerController>(GetController()))
 	{
 		PC->SetMissionState(EMissionState::GameOver);
+	}
+	
+	if (AudioSystem)
+	{
+		AudioSystem->PlayDockingFailSound();
 	}
 }
 void ASpaceShipPawn::OnPausePressed(const FInputActionValue& Value)
