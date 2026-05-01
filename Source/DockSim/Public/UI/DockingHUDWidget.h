@@ -14,7 +14,7 @@ class DOCKSIM_API UDockingHUDWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void UpdateTelemetry(float DistanceMeters, float SpeedMPS, float AlignmentPct, FString CurrentStatusMsg, FLinearColor StatusColor);
+	void UpdateTelemetry(float DistanceMeters, float SpeedMPS, float AlignmentNoseAlignmentPct, float AlignmentRollPct, FString CurrentStatusMsg, FLinearColor StatusColor);
 	
 	// A função que a Nave usará para injetar a imagem da câmera
 	void SetCameraFeed(UTextureRenderTarget2D* CameraTexture);
@@ -30,7 +30,10 @@ protected:
 	TObjectPtr<UTextBlock> TXT_Status;
 	
 	UPROPERTY(meta = (BindWidget))
-	TObjectPtr<UTextBlock> TXT_Alignment;
+	TObjectPtr<UTextBlock> TXT_NoseAlignmentAlignment;
+	
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> TXT_RollAlignment;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UImage> IMG_CameraFeed;

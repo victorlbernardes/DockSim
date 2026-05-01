@@ -419,7 +419,6 @@ void ASpaceShipPawn::OnPausePressed(const FInputActionValue& Value)
 
 void ASpaceShipPawn::UpdateDockingMonitor()
 {
-	// Verificações de segurança (Boas práticas)
 	if (!TelemetryComponent || !DockingMonitorComp || !DockingMonitorComp->IsVisible()) return;
 
 	FSpaceTelemetryData CurrentData = TelemetryComponent->GetLatestTelemetry();
@@ -432,7 +431,7 @@ void ASpaceShipPawn::UpdateDockingMonitor()
 		StatusText = TEXT("[ PERIGO: ALTA VELOCIDADE DE APROXIMAÇÃO ]");
 		TextColor = FLinearColor::Red;
 	}
-	else if (CurrentData.TotalAlignment > 95.0f && CurrentData.Distance < 2.0f)
+	else if (CurrentData.NoseAlignmentPercent > 95.0f && CurrentData.RollAlignmentPercent > 95.0f && CurrentData.Distance < 2.0f)
 	{
 		StatusText = TEXT("[ ALINHAMENTO PERFEITO: MANTENHA ]");
 		TextColor = FLinearColor::Green;
@@ -440,6 +439,11 @@ void ASpaceShipPawn::UpdateDockingMonitor()
 
 	if (UDockingHUDWidget* Monitor3D = Cast<UDockingHUDWidget>(DockingMonitorComp->GetUserWidgetObject()))
 	{
-		Monitor3D->UpdateTelemetry(CurrentData.Distance, CurrentData.VelTotal, CurrentData.TotalAlignment, StatusText, TextColor);
+		Monitor3D->UpdateTelemetry(CurrentData.Distance, CurrentData.VelTotal, CurrentData.NoseAlignmentPercent, CurrentData.RollAlignmentPercent, StatusText, TextColor);
+	}
+    
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(1, 0.1f, FColor::Cyan, FString::Printf(TEXT("Bico: %.1f %% | Eixo: %.1f %%"), CurrentData.NoseAlignmentPercent, CurrentData.RollAlignmentPercent));
 	}
 }

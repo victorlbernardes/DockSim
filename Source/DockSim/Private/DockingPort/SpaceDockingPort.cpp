@@ -4,6 +4,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "TimerManager.h"
+#include "Components/SpaceTelemetryComponent.h"
 #include "Player/SpaceShipPawn.h" 
 
 ASpaceDockingPort::ASpaceDockingPort()
@@ -165,23 +166,43 @@ void ASpaceDockingPort::OnPrecisionVolumeOverlap(UPrimitiveComponent* Overlapped
 	// 1. Uma nave encostou na âncora?
 	if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(OtherActor))
 	{
-		// 2. A NAVE ESTÁ EM MODO DE POUSO? (Substitui o bool bAreClampsArmed)
+		// 2. A nave está em modo de pouso (Grampos armados)?
 		if (Ship->GetCurrentFlightState() == EShipFlightState::LandingMode)
 		{
-			// 3. A velocidade está correta?
+			// 3. Verifica a Velocidade
 			float Speed = Ship->GetVelocity().Size() / 100.0f;
-			EDockingStatus Status = RequestDockingPermission(Speed);
+			bool bIsSpeedOk = (Speed <= MaxSafeDockingSpeed);
 
-			// 4. O Veredito!
-			if (Status == EDockingStatus::Granted)
+			// 4. A CORREÇÃO: O Segurança verifica o alinhamento da nave (Nose E Roll)!
+			bool bIsAlignmentOk = false;
+            
+			if (USpaceTelemetryComponent* Telemetry = Ship->FindComponentByClass<USpaceTelemetryComponent>())
 			{
-				// A Alfândega liberou! Puxa o gatilho da nave para desligar os motores.
+				FSpaceTelemetryData Data = Telemetry->GetLatestTelemetry();
+
+				// REGRA DE OURO JUSTA: Ambos têm que ser maiores que 95%
+				if (Data.NoseAlignmentPercent >= 95.0f && Data.RollAlignmentPercent >= 95.0f)
+				{
+					bIsAlignmentOk = true;
+				}
+			}
+
+			// 5. O Veredito Final
+			if (bIsSpeedOk && bIsAlignmentOk)
+			{
+				// Alfândega liberou! Puxa o gatilho da nave.
+				SetDockingStatus(EDockingStatus::Granted);
 				Ship->ExecuteHardcoreDocking(this);
+			}
+			else
+			{
+				// O jogador bateu. Ou velocidade alta, ou estava torto.
+				SetDockingStatus(EDockingStatus::Denied);
+				UE_LOG(LogTemp, Warning, TEXT("Docking Negado! Velocidade OK: %d | Alinhamento OK: %d"), bIsSpeedOk, bIsAlignmentOk);
 			}
 		}
 		else
 		{
-			// O jogador bateu a nave na estação porque não apertou o botão de armar os grampos!
 			UE_LOG(LogTemp, Error, TEXT("Falha: A nave encostou no berço, mas não estava em Landing Mode!"));
 		}
 	}

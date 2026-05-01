@@ -3,7 +3,7 @@
 #include "Components/Image.h"
 #include "Engine/TextureRenderTarget2D.h" 
 
-void UDockingHUDWidget::UpdateTelemetry(float DistanceMeters, float SpeedMPS, float AlignmentPct, FString CurrentStatusMsg, FLinearColor StatusColor)
+void UDockingHUDWidget::UpdateTelemetry(float DistanceMeters, float SpeedMPS, float NoseAlignmentYawPct, float AlignmentRollPct, FString CurrentStatusMsg, FLinearColor StatusColor)
 {
 	if (TXT_Distance)
 	{
@@ -28,20 +28,37 @@ void UDockingHUDWidget::UpdateTelemetry(float DistanceMeters, float SpeedMPS, fl
 		}
 	}
 	
-	if (TXT_Alignment)
+	if (TXT_NoseAlignmentAlignment)
 	{
 		// Exibe a porcentagem (Ex: 98.4%)
-		FString AlignString = FString::Printf(TEXT("ALINHAMENTO: %04.1f%%"), AlignmentPct);
-		TXT_Alignment->SetText(FText::FromString(AlignString));
+		FString AlignString = FString::Printf(TEXT("Pitch Allign: %04.1f%%"), NoseAlignmentYawPct);
+		TXT_NoseAlignmentAlignment->SetText(FText::FromString(AlignString));
 
 		// Se o alinhamento estiver acima de 95%, brilha em verde, senão amarelo/laranja
-		if (AlignmentPct >= 95.0f)
+		if (NoseAlignmentYawPct >= 95.0f)
 		{
-			TXT_Alignment->SetColorAndOpacity(FSlateColor(FLinearColor::Green));
+			TXT_NoseAlignmentAlignment->SetColorAndOpacity(FSlateColor(FLinearColor::Green));
 		}
 		else
 		{
-			TXT_Alignment->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
+			TXT_NoseAlignmentAlignment->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
+		}
+	}
+	
+	if (TXT_RollAlignment)
+	{
+		// Exibe a porcentagem (Ex: 98.4%)
+		FString AlignString = FString::Printf(TEXT("Roll Allign: %04.1f%%"), AlignmentRollPct);
+		TXT_RollAlignment->SetText(FText::FromString(AlignString));
+
+		// Se o alinhamento estiver acima de 95%, brilha em verde, senão amarelo/laranja
+		if (AlignmentRollPct >= 95.0f)
+		{
+			TXT_RollAlignment->SetColorAndOpacity(FSlateColor(FLinearColor::Green));
+		}
+		else
+		{
+			TXT_RollAlignment->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
 		}
 	}
 	

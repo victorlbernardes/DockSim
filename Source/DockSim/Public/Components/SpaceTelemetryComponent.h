@@ -30,7 +30,11 @@ struct FSpaceTelemetryData
 
 	// --- NOVOS DADOS PARA O MONITOR DE DOCKING ---
 	UPROPERTY(BlueprintReadOnly) float Distance = 0.0f;
-	UPROPERTY(BlueprintReadOnly) float TotalAlignment = 0.0f;
+	
+	// Alinhamento do Bico (Pitch e Yaw)
+	UPROPERTY(BlueprintReadOnly) float NoseAlignmentPercent = 0.0f;
+	// A nova métrica exclusiva de Roll (Teto com Teto)
+	UPROPERTY(BlueprintReadOnly) float RollAlignmentPercent = 0.0f;
 };
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )

@@ -73,33 +73,49 @@ FSpaceTelemetryData USpaceTelemetryComponent::GetLatestTelemetry()
 		AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
 		if (ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor))
         		{
-        			if (UPrimitiveComponent* PortRoot = Cast<UPrimitiveComponent>(TargetPort->GetRootComponent()))
-        			{
-        				TargetGlobalVelocity = PortRoot->GetPhysicsLinearVelocity();
-        			}
-        
-        			// --- NOVO: Cálculo de Distância e Alinhamento usando o DockingPoint ---
-        			USceneComponent* DPoint = nullptr;
-        			if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(Owner)) 
-        			{ 
-        				DPoint = Ship->GetDockingPoint(); 
-        			}
-                    
-        			FVector ShipLoc = DPoint ? DPoint->GetComponentLocation() : Owner->GetActorLocation();
-        			FVector ShipForward = DPoint ? DPoint->GetForwardVector() : Owner->GetActorForwardVector();
-        			FVector PortLoc = TargetPort->DockingAnchor->GetComponentLocation();
-        			FVector PortForward = TargetPort->DockingAnchor->GetForwardVector();
-        
-        			Data.Distance = FVector::Dist(ShipLoc, PortLoc) / 100.0f;
-        
-        			float RotDot = FVector::DotProduct(ShipForward, -PortForward);
-        			float RotPercent = FMath::Clamp(RotDot * 100.0f, 0.0f, 100.0f);
-        			FVector DirToShip = (ShipLoc - PortLoc).GetSafeNormal();
-        			float PathDot = FVector::DotProduct(PortForward, DirToShip);
-        			float PathPercent = FMath::Clamp(PathDot * 100.0f, 0.0f, 100.0f);
-                    
-        			Data.TotalAlignment = (RotPercent * PathPercent) / 100.0f;
-        		}
+			if (UPrimitiveComponent* PortRoot = Cast<UPrimitiveComponent>(TargetPort->GetRootComponent()))
+			{
+				TargetGlobalVelocity = PortRoot->GetPhysicsLinearVelocity();
+			}
+
+			USceneComponent* DPoint = nullptr;
+			if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(Owner)) 
+			{ 
+				DPoint = Ship->GetDockingPoint(); 
+			}
+            
+			FVector ShipLoc = DPoint ? DPoint->GetComponentLocation() : Owner->GetActorLocation();
+			FVector ShipForward = DPoint ? DPoint->GetForwardVector() : Owner->GetActorForwardVector();
+			// NOVO: Pegando o "Teto" da Nave
+			FVector ShipUp = DPoint ? DPoint->GetUpVector() : Owner->GetActorUpVector();
+
+			FVector PortLoc = TargetPort->DockingAnchor->GetComponentLocation();
+			FVector PortForward = TargetPort->DockingAnchor->GetForwardVector();
+			// NOVO: Pegando o "Teto" da Estação
+			FVector PortUp = TargetPort->DockingAnchor->GetUpVector();
+
+			Data.Distance = FVector::Dist(ShipLoc, PortLoc) / 100.0f;
+
+			// 1. Alinhamento de Bico (Frente)
+			float RotDot = FVector::DotProduct(ShipForward, -PortForward);
+			float RotPercent = FMath::Clamp(RotDot * 100.0f, 0.0f, 100.0f);
+
+			// 2. Alinhamento de Caminho (Cone de Aproximação)
+			FVector DirToShip = (ShipLoc - PortLoc).GetSafeNormal();
+			float PathDot = FVector::DotProduct(PortForward, DirToShip);
+			float PathPercent = FMath::Clamp(PathDot * 100.0f, 0.0f, 100.0f);
+            
+			// 3. NOVO: Alinhamento de Teto (Roll Match)
+			float UpDot = FVector::DotProduct(ShipUp, PortUp);
+			// Valores negativos viram 0% (se estiver de cabeça para baixo, não atraca!)
+			Data.RollAlignmentPercent = FMath::Clamp(UpDot * 100.0f, 0.0f, 100.0f);
+
+			// A MÁGICA: O Alinhamento Total agora multiplica TUDO. 
+			// Se o Roll estiver 0%, o Total cai pra 0%.
+			float AlignmentTemp = (RotPercent * PathPercent) / 100.0f;
+			// SALVAMOS O BICO SEPARADO AQUI:
+			Data.NoseAlignmentPercent = AlignmentTemp; 
+        }
 
 		// 3. A MÁGICA DA FÍSICA RELATIVA: Velocidade da Nave MENOS Velocidade do Alvo
 		FVector RelativeVelocity = ShipGlobalVelocity - TargetGlobalVelocity;
@@ -135,23 +151,31 @@ bool USpaceTelemetryComponent::IsReadyForHardLock() const
 
 	if (!TargetPort || !TargetPort->DockingAnchor) return false;
 
+	// Usa as lógicas que definimos acima para garantir que TUDO será avaliado no juízo final
 	FVector ShipLoc = GetOwner()->GetActorLocation();
+	FVector ShipForward = GetOwner()->GetActorForwardVector();
+	FVector ShipUp = GetOwner()->GetActorUpVector();
+
 	FVector PortLoc = TargetPort->DockingAnchor->GetComponentLocation();
 	FVector PortForward = TargetPort->DockingAnchor->GetForwardVector();
-	FVector ShipForward = GetOwner()->GetActorForwardVector();
+	FVector PortUp = TargetPort->DockingAnchor->GetUpVector();
 
-	// Recalcula os valores cruciais no exato milissegundo do aperto do botão
 	float DistanceMeters = FVector::Dist(ShipLoc, PortLoc) / 100.0f;
+
 	float RotDot = FVector::DotProduct(ShipForward, -PortForward);
 	float RotPercent = FMath::Clamp(RotDot * 100.0f, 0.0f, 100.0f);
+
 	FVector DirToShip = (ShipLoc - PortLoc).GetSafeNormal();
 	float PathDot = FVector::DotProduct(PortForward, DirToShip);
 	float PathPercent = FMath::Clamp(PathDot * 100.0f, 0.0f, 100.0f);
-	float TotalAlignment = (RotPercent * PathPercent) / 100.0f;
 
-	// A REGRA DE OURO DO SEU JOGO (Ajuste a dificuldade aqui)
-	// Exemplo: Menos de 2.5 metros e Mais de 95% de alinhamento
-	if (DistanceMeters <= 10.0f && TotalAlignment >= 95.0f)
+	// Checa o Roll na hora do juízo final
+	float UpDot = FVector::DotProduct(ShipUp, PortUp);
+	float RollPercent = FMath::Clamp(UpDot * 100.0f, 0.0f, 100.0f);
+	float NosePercent = (RotPercent * PathPercent) / 100.0f;
+
+	// REGRA JUSTA SEPARADA
+	if (DistanceMeters <= 10.0f && NosePercent >= 95.0f && RollPercent >= 95.0f)
 	{
 		return true;
 	}
