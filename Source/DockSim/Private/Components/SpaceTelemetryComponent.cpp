@@ -146,39 +146,52 @@ FSpaceTelemetryData USpaceTelemetryComponent::GetLatestTelemetry()
 
 bool USpaceTelemetryComponent::IsReadyForHardLock() const
 {
-	AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
-	ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
+    AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
+    ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
 
-	if (!TargetPort || !TargetPort->DockingAnchor) return false;
+    if (!TargetPort || !TargetPort->DockingAnchor) return false;
 
-	// Usa as lógicas que definimos acima para garantir que TUDO será avaliado no juízo final
-	FVector ShipLoc = GetOwner()->GetActorLocation();
-	FVector ShipForward = GetOwner()->GetActorForwardVector();
-	FVector ShipUp = GetOwner()->GetActorUpVector();
+    // 1. Quem é o dono dessa mochila de telemetria?
+    AActor* Owner = GetOwner(); 
+    USceneComponent* DPoint = nullptr;
 
-	FVector PortLoc = TargetPort->DockingAnchor->GetComponentLocation();
-	FVector PortForward = TargetPort->DockingAnchor->GetForwardVector();
-	FVector PortUp = TargetPort->DockingAnchor->GetUpVector();
+    // 2. Tenta descobrir se o dono é a nossa Nave Específica para roubar o DockingPoint
+    if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(Owner))
+    {
+        DPoint = Ship->GetDockingPoint();
+    }
 
-	float DistanceMeters = FVector::Dist(ShipLoc, PortLoc) / 100.0f;
+    // 3. A CORREÇÃO MÁGICA: Usamos o Operador Ternário para decidir de onde vêm os vetores
+    // Lê-se: O DPoint existe? Se sim, pegue a posição dele. Se não (:), pegue a posição do Ator.
+    FVector ShipLoc = DPoint ? DPoint->GetComponentLocation() : Owner->GetActorLocation();
+    FVector ShipForward = DPoint ? DPoint->GetForwardVector() : Owner->GetActorForwardVector();
+    FVector ShipUp = DPoint ? DPoint->GetUpVector() : Owner->GetActorUpVector();
 
-	float RotDot = FVector::DotProduct(ShipForward, -PortForward);
-	float RotPercent = FMath::Clamp(RotDot * 100.0f, 0.0f, 100.0f);
+    // Vetores da Estação continuam iguais
+    FVector PortLoc = TargetPort->DockingAnchor->GetComponentLocation();
+    FVector PortForward = TargetPort->DockingAnchor->GetForwardVector();
+    FVector PortUp = TargetPort->DockingAnchor->GetUpVector();
 
-	FVector DirToShip = (ShipLoc - PortLoc).GetSafeNormal();
-	float PathDot = FVector::DotProduct(PortForward, DirToShip);
-	float PathPercent = FMath::Clamp(PathDot * 100.0f, 0.0f, 100.0f);
+    // --- DAQUI PRA BAIXO A MATEMÁTICA CONTINUA A MESMA QUE FIZEMOS ---
+    float DistanceMeters = FVector::Dist(ShipLoc, PortLoc) / 100.0f;
 
-	// Checa o Roll na hora do juízo final
-	float UpDot = FVector::DotProduct(ShipUp, PortUp);
-	float RollPercent = FMath::Clamp(UpDot * 100.0f, 0.0f, 100.0f);
-	float NosePercent = (RotPercent * PathPercent) / 100.0f;
+    float RotDot = FVector::DotProduct(ShipForward, -PortForward);
+    float RotPercent = FMath::Clamp(RotDot * 100.0f, 0.0f, 100.0f);
 
-	// REGRA JUSTA SEPARADA
-	if (DistanceMeters <= 10.0f && NosePercent >= 95.0f && RollPercent >= 95.0f)
-	{
-		return true;
-	}
+    FVector DirToShip = (ShipLoc - PortLoc).GetSafeNormal();
+    float PathDot = FVector::DotProduct(PortForward, DirToShip);
+    float PathPercent = FMath::Clamp(PathDot * 100.0f, 0.0f, 100.0f);
 
-	return false;
+    float UpDot = FVector::DotProduct(ShipUp, PortUp);
+    
+    // Regras Separadas e Justas
+    float NosePercent = (RotPercent * PathPercent) / 100.0f;
+    float RollPercent = FMath::Clamp(UpDot * 100.0f, 0.0f, 100.0f);
+
+    if (DistanceMeters <= 10.0f && NosePercent >= 95.0f && RollPercent >= 95.0f)
+    {
+        return true;
+    }
+
+    return false;
 }

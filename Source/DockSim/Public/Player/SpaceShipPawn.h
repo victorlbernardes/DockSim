@@ -20,8 +20,9 @@ class UCFTVComponent;
 class USpaceAudioComponent;
 class USceneCaptureComponent2D;
 class UTextureRenderTarget2D;
-class UWidgetComponent; // <-- Adicionado para o Monitor 3D
+class UWidgetComponent; 
 class UShipHUDWidget;
+class USpotLightComponent;
 
 // -------------------------------------------------------------
 // ENUMS DE ESTADO
@@ -148,6 +149,11 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Docking")
 	TObjectPtr<UWidgetComponent> DockingMonitorComp;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Lights")
+	TObjectPtr<USpotLightComponent> LeftHeadlight;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Lights")
+	TObjectPtr<USpotLightComponent> RightHeadlight;
 	// ==========================================
 	// INTERFACE (UI) & RENDERS DINÂMICOS
 	// ==========================================
@@ -177,6 +183,9 @@ protected:
 	TObjectPtr<UInputAction> ToggleRollAction;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> ToggleHeadlightsAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> PrecisionAction;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -186,7 +195,7 @@ protected:
 	TObjectPtr<UInputAction> DockAction;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> EscAction;
+	TObjectPtr<UInputAction> PauseAction;
 
 	// ==========================================
 	// CONFIGURAÇÕES DA NAVE (Ajustáveis no Editor)
@@ -218,6 +227,7 @@ protected:
 	void ToggleFreeLook(const FInputActionValue& Value);
 	void OnDockButtonPressed(const FInputActionValue& Value);
 	void OnPausePressed(const FInputActionValue& Value);
+	void OnToggleHeadlights(const FInputActionValue& Value);
 	
 	// Callbacks de Física e Dano
 	UFUNCTION()

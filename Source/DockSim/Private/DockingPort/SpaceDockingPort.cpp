@@ -65,6 +65,39 @@ ASpaceDockingPort::ASpaceDockingPort()
 	PrecisionDockingVolume->SetBoxExtent(FVector(4.0f, 50.0f, 50.0f)); 
 	PrecisionDockingVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	PrecisionDockingVolume->SetCollisionResponseToAllChannels(ECR_Overlap);
+	
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMeshLoader(TEXT("/Engine/BasicShapes/Sphere"));
+
+	// Vamos criar as luzes procedurais em um círculo perfeito
+	for (int32 i = 0; i < NumberOfLights; i++)
+	{
+		// 1. Precisamos de um nome único para cada componente, senão a Unreal dá Crash!
+		FName LightName = FName(*FString::Printf(TEXT("RunwayLight_%d"), i));
+		
+		// 2. Instancia o componente
+		UStaticMeshComponent* LightMesh = CreateDefaultSubobject<UStaticMeshComponent>(LightName);
+		LightMesh->SetupAttachment(DockingAnchor);
+		
+		// 3. Configurações visuais e de colisão
+		if (SphereMeshLoader.Succeeded())
+		{
+			LightMesh->SetStaticMesh(SphereMeshLoader.Object);
+		}
+		LightMesh->SetRelativeScale3D(FVector(0.1f)); // Bem pequenininhas
+		LightMesh->SetCollisionProfileName(TEXT("NoCollision")); // Luz não tem física
+		
+		// 4. A MATEMÁTICA: Distribuir em um círculo nos eixos Y e Z
+		// 360 graus divididos pelo número de luzes, convertido para radianos
+		float AngleRads = (i * (360.0f / NumberOfLights)) * (PI / 180.0f);
+		
+		float YPos = FMath::Cos(AngleRads) * RunwayRingRadius;
+		float ZPos = FMath::Sin(AngleRads) * RunwayRingRadius;
+		
+		LightMesh->SetRelativeLocation(FVector(0.0f, YPos, ZPos));
+
+		// 5. Salva na nossa lista para podermos acessar depois se precisarmos
+		RunwayLights.Add(LightMesh);
+	}
 }
 
 void ASpaceDockingPort::BeginPlay()

@@ -12,7 +12,7 @@
 #include "Core/SpacePlayerController.h"
 #include "DockingPort/SpaceDockingPort.h"
 #include "Engine/TextureRenderTarget2D.h"
-#include "Kismet/GameplayStatics.h"
+#include "Components/SpotLightComponent.h"
 #include "UI/DockingHUDWidget.h"
 #include "DrawDebugHelpers.h"
 #include "Components/SpaceAudioComponent.h"
@@ -61,6 +61,24 @@ ASpaceShipPawn::ASpaceShipPawn()
 	DockingMonitorComp->SetWidgetSpace(EWidgetSpace::World);
 	DockingMonitorComp->SetDrawSize(FVector2D(1024.0f, 1024.0f)); // Resolução alta
 	DockingMonitorComp->SetVisibility(false); // Começa desligado
+	
+	LeftHeadlight = CreateDefaultSubobject<USpotLightComponent>(TEXT("LeftHeadlight"));
+	LeftHeadlight->SetupAttachment(ShipMesh);
+	// Move a luz um pouco para frente (X) e para a esquerda (Y)
+	LeftHeadlight->SetRelativeLocation(FVector(200.0f, -150.0f, 0.0f)); 
+	LeftHeadlight->Intensity = 80000.0f; // Força no vácuo
+	LeftHeadlight->InnerConeAngle = 20.0f; // Foco central forte
+	LeftHeadlight->OuterConeAngle = 45.0f; // Penumbra suave
+	LeftHeadlight->SetVisibility(false); // Começa desligado para economizar bateria!
+
+	RightHeadlight = CreateDefaultSubobject<USpotLightComponent>(TEXT("RightHeadlight"));
+	RightHeadlight->SetupAttachment(ShipMesh);
+	// Move a luz um pouco para frente (X) e para a direita (Y)
+	RightHeadlight->SetRelativeLocation(FVector(200.0f, 150.0f, 0.0f));
+	RightHeadlight->Intensity = 80000.0f;
+	RightHeadlight->InnerConeAngle = 20.0f;
+	RightHeadlight->OuterConeAngle = 45.0f;
+	RightHeadlight->SetVisibility(false);
 }
 
 void ASpaceShipPawn::BeginPlay()
@@ -173,9 +191,13 @@ void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 		{
 			EnhancedInputComponent->BindAction(DockAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnDockButtonPressed);
 		}
-		if (EscAction)
+		if (PauseAction)
 		{
-			EnhancedInputComponent->BindAction(EscAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnPausePressed);
+			EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnPausePressed);
+		}
+		if (ToggleHeadlightsAction)
+		{
+			EnhancedInputComponent->BindAction(ToggleHeadlightsAction, ETriggerEvent::Started, this, &ASpaceShipPawn::OnToggleHeadlights);
 		}
 	}
 }
@@ -445,5 +467,21 @@ void ASpaceShipPawn::UpdateDockingMonitor()
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(1, 0.1f, FColor::Cyan, FString::Printf(TEXT("Bico: %.1f %% | Eixo: %.1f %%"), CurrentData.NoseAlignmentPercent, CurrentData.RollAlignmentPercent));
+	}
+}
+
+void ASpaceShipPawn::OnToggleHeadlights(const FInputActionValue& Value)
+{
+	// Se a nave estiver morta, não tem energia para a luz
+	if (CurrentFlightState == EShipFlightState::Disabled) return;
+
+	// O método nativo da Unreal que inverte de True para False automaticamente
+	if (LeftHeadlight) LeftHeadlight->ToggleVisibility();
+	if (RightHeadlight) RightHeadlight->ToggleVisibility();
+
+	if (GEngine)
+	{
+		FString State = (LeftHeadlight && LeftHeadlight->IsVisible()) ? TEXT("ON") : TEXT("OFF");
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("SISTEMA: Faróis %s"), *State));
 	}
 }

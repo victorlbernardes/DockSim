@@ -79,6 +79,17 @@ protected:
 	void OnPrecisionVolumeOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	void UpdateSirenLogic();
+	
+	// O Array que vai guardar os ponteiros das nossas luzes procedurais
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Visuals")
+	TArray<TObjectPtr<UStaticMeshComponent>> RunwayLights;
+
+	// Opcional: Variáveis para você brincar com o tamanho do anel depois
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Docking|Visuals")
+	float RunwayRingRadius = 400.0f; 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Docking|Visuals")
+	int32 NumberOfLights = 4;
 
 private:
 	FTimerHandle SirenTimerHandle;
