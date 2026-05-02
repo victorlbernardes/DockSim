@@ -23,4 +23,7 @@ protected:
 	// A função do GameMode que vai escutar o Delegate do Casco
 	UFUNCTION()
 	void OnShipDestroyed();
+	
+	UFUNCTION()
+	void OnMissionVictory();
 };

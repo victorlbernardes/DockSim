@@ -20,6 +20,8 @@ void ADockSimGameMode::BeginPlay()
 	if (PlayerShip && PlayerShip->GetHullComponent())
 	{
 		PlayerShip->GetHullComponent()->OnHullCritical.AddDynamic(this, &ADockSimGameMode::OnShipDestroyed);
+		
+		PlayerShip->OnDockingCompleted.AddDynamic(this, &ADockSimGameMode::OnMissionVictory);
 	}
 }
 
@@ -37,4 +39,16 @@ void ADockSimGameMode::OnShipDestroyed()
 
 	// 2. Chama a função que desenha a UI (que você vai criar no Blueprint)
 	ShowGameOverScreen();
+}
+
+void ADockSimGameMode::OnMissionVictory() {
+	// 1. Pausa e libera o mouse (Reutilizando sua lógica de derrota)[cite: 8]
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	if (PC) {
+		PC->SetShowMouseCursor(true);
+		PC->SetInputMode(FInputModeUIOnly());
+	}
+    
+	// 2. Chama o evento visual que será feito no Blueprint
+	ShowVictoryScreen();
 }

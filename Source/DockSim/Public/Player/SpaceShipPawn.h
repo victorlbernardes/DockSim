@@ -68,6 +68,7 @@ enum class ERotationMode : uint8
 // -------------------------------------------------------------
 // CLASSE PRINCIPAL
 // -------------------------------------------------------------
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDockingCompleted);
 UCLASS()
 class DOCKSIM_API ASpaceShipPawn : public APawn
 {
@@ -97,6 +98,9 @@ public:
 	
 	UFUNCTION()
 	void HandleHullCritical();
+	
+	UPROPERTY(BlueprintAssignable, Category = "Ship Systems|Events")
+	FOnDockingCompleted OnDockingCompleted;
 	
 protected:
 	virtual void BeginPlay() override;

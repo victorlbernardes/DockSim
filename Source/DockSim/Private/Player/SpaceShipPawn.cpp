@@ -66,16 +66,22 @@ ASpaceShipPawn::ASpaceShipPawn()
 	LeftHeadlight->SetupAttachment(ShipMesh);
 	// Move a luz um pouco para frente (X) e para a esquerda (Y)
 	LeftHeadlight->SetRelativeLocation(FVector(200.0f, -150.0f, 0.0f)); 
-	LeftHeadlight->Intensity = 80000.0f; // Força no vácuo
+	LeftHeadlight->Intensity = 500000.0f; // Força no vácuo
+	LeftHeadlight->AttenuationRadius = 10000.0f;
 	LeftHeadlight->InnerConeAngle = 20.0f; // Foco central forte
 	LeftHeadlight->OuterConeAngle = 45.0f; // Penumbra suave
 	LeftHeadlight->SetVisibility(false); // Começa desligado para economizar bateria!
+	LeftHeadlight->bUseInverseSquaredFalloff = false; // Torna o alcance mais "linear" e previsível
+	LeftHeadlight->SetCastShadows(false); // Faróis de nave geralmente não precisam projetar sombras do cenário para o MVP
 
 	RightHeadlight = CreateDefaultSubobject<USpotLightComponent>(TEXT("RightHeadlight"));
 	RightHeadlight->SetupAttachment(ShipMesh);
 	// Move a luz um pouco para frente (X) e para a direita (Y)
 	RightHeadlight->SetRelativeLocation(FVector(200.0f, 150.0f, 0.0f));
-	RightHeadlight->Intensity = 80000.0f;
+	RightHeadlight->Intensity = 500000.0f; // Força no vácuo
+	RightHeadlight->AttenuationRadius = 10000.0f;
+	RightHeadlight->bUseInverseSquaredFalloff = false;
+	RightHeadlight->SetCastShadows(false);
 	RightHeadlight->InnerConeAngle = 20.0f;
 	RightHeadlight->OuterConeAngle = 45.0f;
 	RightHeadlight->SetVisibility(false);
@@ -365,6 +371,7 @@ void ASpaceShipPawn::ExecuteHardcoreDocking(ASpaceDockingPort* TargetPort)
 		AudioSystem->PlayDockingSuccessSound();
 	}
 	GetWorldTimerManager().ClearTimer(TelemetryTimerHandle);
+	OnDockingCompleted.Broadcast();
 }
 
 void ASpaceShipPawn::OnSensorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
