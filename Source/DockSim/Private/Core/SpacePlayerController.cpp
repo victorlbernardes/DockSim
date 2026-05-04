@@ -22,13 +22,7 @@ void ASpacePlayerController::BeginPlay()
             MainHUDInstance->AddToViewport();
         }
     }
-}
-
-void ASpacePlayerController::OnPossess(APawn* InPawn)
-{
-    Super::OnPossess(InPawn);
-
-    // Registra o contexto de Input do Enhanced Input
+    
     if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
         ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
     {
@@ -38,6 +32,14 @@ void ASpacePlayerController::OnPossess(APawn* InPawn)
             Subsystem->AddMappingContext(ShipMappingContext, 0);
         }
     }
+    SetMissionState(EMissionState::Playing);
+}
+
+
+void ASpacePlayerController::OnPossess(APawn* InPawn)
+{
+    Super::OnPossess(InPawn);
+    
 }
 
 void ASpacePlayerController::UpdateSignalAlert(ESignalStatus NewStatus)

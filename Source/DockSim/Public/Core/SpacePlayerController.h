@@ -69,7 +69,7 @@ private:
     TObjectPtr<UMissionMenuWidget> ActiveMenuInstance;
 
     /** Estado atual da máquina de estados */
-    EMissionState CurrentMissionState = EMissionState::Playing;
+    EMissionState CurrentMissionState = EMissionState::Paused;
 
     /** Lógica interna de troca de estado (Mouse, Pausa, Visibilidade) */
     void HandleStateChange(EMissionState NewState);

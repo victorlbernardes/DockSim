@@ -41,6 +41,15 @@ protected:
 	TObjectPtr<UTextBlock> TXT_VelocityVERT;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TXT_Pitch;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TXT_Yaw;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UTextBlock> TXT_Roll;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> TXT_EngineScale;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))

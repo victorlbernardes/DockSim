@@ -14,7 +14,6 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "Components/SpotLightComponent.h"
 #include "UI/DockingHUDWidget.h"
-#include "DrawDebugHelpers.h"
 #include "Components/SpaceAudioComponent.h"
 
 ASpaceShipPawn::ASpaceShipPawn()
