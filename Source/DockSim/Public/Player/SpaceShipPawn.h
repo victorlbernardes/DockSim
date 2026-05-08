@@ -58,13 +58,6 @@ enum class EPilotVisionMode : uint8
 	FreeLook  UMETA(DisplayName = "Olhar ao Redor (Livre)")
 };
 
-UENUM(BlueprintType)
-enum class ERotationMode : uint8
-{
-	YawControl         UMETA(DisplayName = "Controle de Yaw"),
-	RollControl        UMETA(DisplayName = "Controle de Roll"),
-};
-
 // -------------------------------------------------------------
 // CLASSE PRINCIPAL
 // -------------------------------------------------------------
@@ -184,7 +177,7 @@ protected:
 	TObjectPtr<UInputAction> LookAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> ToggleRollAction;
+	TObjectPtr<UInputAction> RollAction;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> ToggleHeadlightsAction;
@@ -225,7 +218,7 @@ protected:
 	void Move(const FInputActionValue& Value);
 	void OnThrottle(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
-	void OnToggleRoll(const FInputActionValue& Value);
+	void OnRoll(const FInputActionValue& Value);
 	void OnPrecisionModeStart(const FInputActionValue& Value);
 	void OnPrecisionModeEnd(const FInputActionValue& Value);
 	void ToggleFreeLook(const FInputActionValue& Value);
@@ -244,7 +237,6 @@ private:
 	// Máquinas de Estado e Variáveis Privadas
 	EShipFlightState CurrentFlightState = EShipFlightState::FreeFlying;
 	EPilotVisionMode CurrentVisionMode = EPilotVisionMode::Standard;
-	ERotationMode CurrentRotState = ERotationMode::YawControl;
 	ESignalStatus CurrentSignalStatus = ESignalStatus::Lost;
 	EDockingMonitorState CurrentMonitorState = EDockingMonitorState::Offline;
 	

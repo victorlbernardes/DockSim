@@ -55,6 +55,49 @@ void USpaceMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType
 			ResourceComp->ConsumeFuel(ActualDrain);
 		}
 	}
+	if (TargetRotationInput.IsNearlyZero())
+	{
+		// ASSISTÊNCIA DE VOO: O jogador soltou os controles. O computador aplica freio rotacional.
+		// O valor 2.0f é a força do freio. Aumente se quiser que pare mais rápido.
+		UpdatedMesh->SetAngularDamping(2.0f);
+	}
+	else
+	{
+		// VOO LIVRE: O jogador está controlando. Zero atrito, física newtoniana pura!
+		UpdatedMesh->SetAngularDamping(0.0f);
+
+		if (ResourceComp && ResourceComp->HasFuel())
+		{
+			// 1. Sensibilidade
+			FVector ScaledInput = TargetRotationInput * MouseSensitivity;
+
+			// 2. Curva Exponencial
+			float Pitch = FMath::Sign(ScaledInput.X) * FMath::Pow(FMath::Abs(ScaledInput.X), InputCurveExponent);
+			float Yaw   = FMath::Sign(ScaledInput.Y) * FMath::Pow(FMath::Abs(ScaledInput.Y), InputCurveExponent);
+			float Roll  = FMath::Sign(ScaledInput.Z) * FMath::Pow(FMath::Abs(ScaledInput.Z), InputCurveExponent);
+
+			FVector TorqueWorld =
+			   UpdatedMesh->GetRightVector()   * Pitch +  
+			   UpdatedMesh->GetUpVector()      * Yaw +    
+			   UpdatedMesh->GetForwardVector() * Roll;    
+        
+			float CurrentPrecisionScale = (CurrentPowerMode == EThrustPowerMode::Precision) ? PrecisionModeMultiplier : 1.0f;
+			FVector InputTorque = TorqueWorld * TorqueForce * CurrentPrecisionScale;
+
+			// 3. Aplica o Torque
+			UpdatedMesh->AddTorqueInRadians(InputTorque, NAME_None, true);
+
+			// 4. Combustível
+			float RawEffort = FVector(Pitch, Yaw, Roll).Size(); 
+			float RotationEffort = FMath::Clamp(RawEffort, 0.0f, 1.0f);
+
+			if (RotationEffort > 0.001f)
+			{
+				float ActualDrain = RotationEffort * RotationFuelConsumptionRate * DeltaTime; 
+				ResourceComp->ConsumeFuel(ActualDrain);
+			}
+		}
+	}
 }
 
 void USpaceMovementComponent::BeginPlay()
@@ -98,7 +141,9 @@ void USpaceMovementComponent::RequestTranslation(FVector TranslationInput)
 
 void USpaceMovementComponent::RequestRotation(FVector RotationInput)
 {
-	if (!UpdatedMesh) return;
+	TargetRotationInput = RotationInput;
+	
+	/*if (!UpdatedMesh) return;
 	if (ResourceComp && !ResourceComp->HasFuel()) return;
 
 	// 1. Sensibilidade
@@ -131,5 +176,5 @@ void USpaceMovementComponent::RequestRotation(FVector RotationInput)
 		float DeltaTime = GetWorld()->GetDeltaSeconds();
 		float ActualDrain = RotationEffort * RotationFuelConsumptionRate * DeltaTime; 
 		ResourceComp->ConsumeFuel(ActualDrain);
-	}
+	}*/
 }

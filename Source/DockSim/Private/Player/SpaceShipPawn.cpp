@@ -175,12 +175,14 @@ void ASpaceShipPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInpu
 		if (LookAction)
 		{
 			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::Look);
+			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::Look);
+			EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Canceled, this, &ASpaceShipPawn::Look);
 		}
-		if (ToggleRollAction)
+		if (RollAction)
 		{
-			EnhancedInputComponent->BindAction(ToggleRollAction, ETriggerEvent::Started,   this, &ASpaceShipPawn::OnToggleRoll);
-			EnhancedInputComponent->BindAction(ToggleRollAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::OnToggleRoll);
-			EnhancedInputComponent->BindAction(ToggleRollAction, ETriggerEvent::Canceled,  this, &ASpaceShipPawn::OnToggleRoll);
+			EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &ASpaceShipPawn::OnRoll);
+			EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Completed, this, &ASpaceShipPawn::OnRoll);
+			EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Canceled, this, &ASpaceShipPawn::OnRoll);
 		}
 		if (PrecisionAction)
 		{
@@ -231,11 +233,16 @@ void ASpaceShipPawn::Move(const FInputActionValue& Value)
 	}
 }
 
-void ASpaceShipPawn::OnToggleRoll(const FInputActionValue& Value)
+void ASpaceShipPawn::OnRoll(const FInputActionValue& Value)
 {
-	bool bIsPressed = Value.Get<bool>();
+	float RollInput = Value.Get<float>();
+    
+	if (CurrentFlightState == EShipFlightState::Docked || CurrentFlightState == EShipFlightState::Disabled) return;
 
-	CurrentRotState = bIsPressed ? ERotationMode::RollControl : ERotationMode::YawControl;
+	if (MovementComponent)
+	{
+		MovementComponent->RequestRotation(FVector(0.0f, 0.0f, RollInput));
+	}
 }
 
 void ASpaceShipPawn::Look(const FInputActionValue& Value)
@@ -258,24 +265,13 @@ void ASpaceShipPawn::Look(const FInputActionValue& Value)
 	
 	if (CurrentFlightState == EShipFlightState::Docked || CurrentFlightState == EShipFlightState::Disabled) return;
 
-    if (MovementComponent)
-    {
-        float PitchInput = LookAxisVector.Y; 
-        float YawInput = 0.0f;
-        float RollInput = 0.0f;
-    	
-        switch (CurrentRotState)
-        {
-            case ERotationMode::YawControl:
-                YawInput = LookAxisVector.X;
-                break;
-                
-            case ERotationMode::RollControl:
-                RollInput = -LookAxisVector.X;
-                break;
-        }
-    	MovementComponent->RequestRotation(FVector(PitchInput, YawInput, RollInput));
-    }
+	if (MovementComponent)
+	{
+		float PitchInput = LookAxisVector.Y; 
+		float YawInput = LookAxisVector.X; 
+        
+		MovementComponent->RequestRotation(FVector(PitchInput, YawInput, 0.0f));
+	}
 }
 
 void ASpaceShipPawn::OnPrecisionModeStart(const FInputActionValue& Value)
