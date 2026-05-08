@@ -4,6 +4,7 @@
 #include "Components/SpaceTelemetryComponent.h"
 #include "Engine/Texture2D.h"
 #include "Components/WidgetSwitcher.h"
+#include "UI/DockingHUDWidget.h"
 
 void UShipHUDWidget::NativeConstruct()
 {
@@ -145,5 +146,33 @@ void UShipHUDWidget::UpdateSignalAlert(ESignalStatus NewStatus)
 	case ESignalStatus::Acquired:
 		AlertSwitcher->SetActiveWidgetIndex(1);
 		break;
+	}
+}
+
+void UShipHUDWidget::SetDockingVideo(UTextureRenderTarget2D* TargetTexture)
+{
+	// Delega a responsabilidade para o submódulo
+	if (WBP_DockingPanel)
+	{
+		WBP_DockingPanel->SetCameraFeed(TargetTexture);
+	}
+}
+
+void UShipHUDWidget::SetDockingHUDVisible(bool bVisible)
+{
+	// Esconde ou mostra o painel inteiro de docking
+	if (WBP_DockingPanel)
+	{
+		ESlateVisibility NewVisibility = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Hidden;
+		WBP_DockingPanel->SetVisibility(NewVisibility);
+	}
+}
+
+void UShipHUDWidget::UpdateDockingTelemetry(float Distance, float Speed, float NoseAlign, float RollAlign, const FString& StatusText, FLinearColor TextColor)
+{
+	// Repassa os dados para o widget especializado tratar as cores e textos
+	if (WBP_DockingPanel)
+	{
+		WBP_DockingPanel->UpdateTelemetry(Distance, Speed, NoseAlign, RollAlign, StatusText, TextColor);
 	}
 }

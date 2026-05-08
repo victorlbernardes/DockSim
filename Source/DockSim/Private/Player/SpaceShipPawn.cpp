@@ -2,6 +2,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputComponent.h"
+#include "Blueprint/UserWidget.h"
 #include "Components/CFTVComponent.h"
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/SpaceHullComponent.h"
@@ -15,6 +16,7 @@
 #include "Components/SpotLightComponent.h"
 #include "UI/DockingHUDWidget.h"
 #include "Components/SpaceAudioComponent.h"
+#include "UI/ShipHUDWidget.h"
 
 ASpaceShipPawn::ASpaceShipPawn()
 {
@@ -50,16 +52,6 @@ ASpaceShipPawn::ASpaceShipPawn()
 	// ==========================================
 	// MONITORES FÍSICOS 3D
 	// ==========================================
-	// 1. A Carcaça do Monitor (Plástico)
-	DockingScreenMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DockingScreenMesh"));
-	DockingScreenMesh->SetupAttachment(ShipMesh); // Anexado à nave (ou à câmera se preferir que siga o rosto)
-
-	// 2. A Tela Digital (Widget)
-	DockingMonitorComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("DockingMonitorComp"));
-	DockingMonitorComp->SetupAttachment(DockingScreenMesh); // Anexado à carcaça do monitor
-	DockingMonitorComp->SetWidgetSpace(EWidgetSpace::World);
-	DockingMonitorComp->SetDrawSize(FVector2D(1024.0f, 1024.0f)); // Resolução alta
-	DockingMonitorComp->SetVisibility(false); // Começa desligado
 	
 	LeftHeadlight = CreateDefaultSubobject<USpotLightComponent>(TEXT("LeftHeadlight"));
 	LeftHeadlight->SetupAttachment(ShipMesh);
@@ -127,17 +119,28 @@ void ASpaceShipPawn::BeginPlay()
 		Cam_Docking->TextureTarget = DynamicDockingRT;
 		Cam_Docking->HiddenActors.Add(this);
 	}
-
-	// 3. Puxa a interface de dentro do componente 3D e injeta o vídeo nela
-	if (DockingMonitorComp)
+	
+	if (HUDClass)
 	{
-		if (UDockingHUDWidget* Monitor3D = Cast<UDockingHUDWidget>(DockingMonitorComp->GetUserWidgetObject()))
+		// 2. Cria o Widget de fato na memória e preenche o nosso ponteiro!
+		MainHUDInstance = CreateWidget<UShipHUDWidget>(GetWorld(), HUDClass);
+		
+		if (MainHUDInstance)
 		{
-			Monitor3D->SetCameraFeed(DynamicDockingRT);
+			// 3. Adiciona na tela do jogador
+			MainHUDInstance->AddToViewport();
+			
+			// 4. Garante que o painel de docking comece invisível por padrão
+			MainHUDInstance->SetDockingHUDVisible(false);
 		}
 	}
+	else
+	{
+		// Um aviso amigável para você não esquecer de setar a variável no Editor
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("ERRO: HUDClass não configurada no BP_SpaceShipPawn!"));
+	}
 }
-
+	
 void ASpaceShipPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -311,27 +314,30 @@ void ASpaceShipPawn::OnDockButtonPressed(const FInputActionValue& Value)
             ShipMesh->WakeAllRigidBodies();
 
             CurrentFlightState = EShipFlightState::FreeFlying;
-            if (DockingMonitorComp) DockingMonitorComp->SetVisibility(false);
+    	if (MainHUDInstance) MainHUDInstance->SetDockingHUDVisible(false);
 
             if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("TRAVAS LIBERADAS. Voo Livre."));
             break;
 
     case EShipFlightState::FreeFlying:
     	CurrentFlightState = EShipFlightState::LandingMode;
-            
-    	if (DockingMonitorComp) DockingMonitorComp->SetVisibility(true);
+    
     	if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = true;
 
-    	// LIGA O TIMER: Chama 'UpdateDockingMonitor' a cada 0.1 segundos (10 FPS), em loop (true)
-    	GetWorldTimerManager().SetTimer(TelemetryTimerHandle, this, &ASpaceShipPawn::UpdateDockingMonitor, 0.1f, true);
+    	// ✔️ Avisa o HUD para aparecer
+    	if (MainHUDInstance) 
+    	{
+    		MainHUDInstance->SetDockingHUDVisible(true);
+    		MainHUDInstance->SetDockingVideo(DynamicDockingRT); // A entrega da fita de vídeo!
+    	}
 
-    	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, TEXT("MODO DE POUSO: Grampos armados."));
+    	GetWorldTimerManager().SetTimer(TelemetryTimerHandle, this, &ASpaceShipPawn::UpdateDockingMonitor, 0.1f, true);
     	break;
 
     case EShipFlightState::LandingMode:
     	CurrentFlightState = EShipFlightState::FreeFlying;
             
-    	if (DockingMonitorComp) DockingMonitorComp->SetVisibility(false);
+    	if (MainHUDInstance) MainHUDInstance->SetDockingHUDVisible(false);
     	if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = false;
 
     	// DESLIGA O TIMER: Para de gastar CPU imediatamente
@@ -354,7 +360,7 @@ void ASpaceShipPawn::ExecuteHardcoreDocking(ASpaceDockingPort* TargetPort)
 	CurrentFlightState = EShipFlightState::Docked;
 	
 	// Desliga a tela do painel após o docking ser concluído
-	if (DockingMonitorComp) DockingMonitorComp->SetVisibility(false);
+	if (MainHUDInstance) MainHUDInstance->SetDockingHUDVisible(false);
 	if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = false;
 
 	if (ASpacePlayerController* PC = Cast<ASpacePlayerController>(GetController()))
@@ -443,8 +449,11 @@ void ASpaceShipPawn::OnPausePressed(const FInputActionValue& Value)
 
 void ASpaceShipPawn::UpdateDockingMonitor()
 {
-	if (!TelemetryComponent || !DockingMonitorComp || !DockingMonitorComp->IsVisible()) return;
+	// 1. CHECAGEM DE SEGURANÇA: 
+	// Em vez de checar o monitor 3D, checamos se o HUD existe e se estamos no modo de pouso.
+	if (!TelemetryComponent || !MainHUDInstance || CurrentFlightState != EShipFlightState::LandingMode) return;
 
+	// 2. BUSCA OS DADOS (Lógica mantida, pois está ótima)
 	FSpaceTelemetryData CurrentData = TelemetryComponent->GetLatestTelemetry();
 
 	FString StatusText = TEXT("[ MODO DE POUSO ATIVO ]");
@@ -461,11 +470,18 @@ void ASpaceShipPawn::UpdateDockingMonitor()
 		TextColor = FLinearColor::Green;
 	}
 
-	if (UDockingHUDWidget* Monitor3D = Cast<UDockingHUDWidget>(DockingMonitorComp->GetUserWidgetObject()))
-	{
-		Monitor3D->UpdateTelemetry(CurrentData.Distance, CurrentData.VelTotal, CurrentData.NoseAlignmentPercent, CurrentData.RollAlignmentPercent, StatusText, TextColor);
-	}
+	// 3. ENVIA PARA O HUD
+	// Substituímos o "Monitor3D" pelo nosso MainHUDInstance
+	MainHUDInstance->UpdateDockingTelemetry(
+		CurrentData.Distance, 
+		CurrentData.VelTotal, 
+		CurrentData.NoseAlignmentPercent, 
+		CurrentData.RollAlignmentPercent, 
+		StatusText, 
+		TextColor
+	);
     
+	// Debug mantido para facilitar seus testes no editor
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(1, 0.1f, FColor::Cyan, FString::Printf(TEXT("Bico: %.1f %% | Eixo: %.1f %%"), CurrentData.NoseAlignmentPercent, CurrentData.RollAlignmentPercent));

@@ -71,10 +71,11 @@ void UDockingHUDWidget::UpdateTelemetry(float DistanceMeters, float SpeedMPS, fl
 
 void UDockingHUDWidget::SetCameraFeed(UTextureRenderTarget2D* CameraTexture)
 {
-	// Se a imagem no painel existir e o vídeo da nave for válido...
 	if (IMG_CameraFeed && CameraTexture)
 	{
-		// Transforma o vídeo em um "Brush" e pinta a imagem do Blueprint
-		IMG_CameraFeed->SetBrushResourceObject(CameraTexture);
+		FSlateBrush Brush;
+		Brush.SetResourceObject(CameraTexture);
+
+		IMG_CameraFeed->SetBrush(Brush);
 	}
 }

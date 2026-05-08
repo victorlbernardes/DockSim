@@ -138,14 +138,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Docking")
 	TObjectPtr<USceneCaptureComponent2D> Cam_Docking; 
 
-	// A carcaça de plástico do monitor no cockpit
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Docking")
-	TObjectPtr<UStaticMeshComponent> DockingScreenMesh;
-
-	// A tela digital brilhante que exibe a interface
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Docking")
-	TObjectPtr<UWidgetComponent> DockingMonitorComp;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Lights")
 	TObjectPtr<USpotLightComponent> LeftHeadlight;
 

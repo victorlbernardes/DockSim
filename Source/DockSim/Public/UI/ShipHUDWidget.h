@@ -8,6 +8,7 @@
 #include "ShipHUDWidget.generated.h"
 
 class USpaceTelemetryComponent;
+class UDockingHUDWidget;
 struct FSpaceTelemetryData; 
 
 UENUM(BlueprintType)
@@ -26,6 +27,15 @@ public:
 	void OnTelemetryUpdated(const FSpaceTelemetryData& TelemetryData);
 	UFUNCTION(BlueprintCallable, Category = "Flight UI|Docking")
 	void UpdateSignalAlert(ESignalStatus NewStatus);
+	
+	UFUNCTION(BlueprintCallable, Category = "Docking")
+	void SetDockingVideo(UTextureRenderTarget2D* TargetTexture);
+	
+	UFUNCTION(BlueprintCallable, Category = "Docking")
+	void SetDockingHUDVisible(bool bVisible);
+	
+	UFUNCTION(BlueprintCallable, Category = "Docking")
+	void UpdateDockingTelemetry(float Distance, float Speed, float NoseAlign, float RollAlign, const FString& StatusText, FLinearColor TextColor);
 
 protected:
 	virtual void NativeConstruct() override;
@@ -63,6 +73,9 @@ protected:
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<class UWidgetSwitcher> AlertSwitcher;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
+	TObjectPtr<UDockingHUDWidget> WBP_DockingPanel;
 
 private:
 	
