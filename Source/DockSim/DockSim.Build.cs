@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 using UnrealBuildTool;
 
 public class DockSim : ModuleRules
@@ -7,17 +5,20 @@ public class DockSim : ModuleRules
 	public DockSim(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "Slate", "SlateCore" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		// Desativa o Unity Build para este módulo específico. 
+		// Isso reduz a quantidade de arquivos processados em lote que podem inflar o ambiente.
+		bUseUnity = false;
 
-		// Uncomment if you are using Slate UI
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		
-		// Uncomment if you are using online features
-		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
+		// Força a inclusão apenas do necessário
+		bLegacyPublicIncludePaths = false;
 
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
+		PublicDependencyModuleNames.AddRange(new string[] { 
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG" 
+		});
+
+		PrivateDependencyModuleNames.AddRange(new string[] { 
+			"Slate", "SlateCore" 
+		});
 	}
 }

@@ -8,15 +8,10 @@
 #include "ShipHUDWidget.generated.h"
 
 class USpaceTelemetryComponent;
-class UDockingHUDWidget;
+class UCameraHUDWidget;
+class UTelemetryDockingHUDWidget;
+class UTelemetrySpeedHUDWidget;
 struct FSpaceTelemetryData; 
-
-UENUM(BlueprintType)
-enum class EShipMovementState : uint8
-{
-	Moving      UMETA(DisplayName = "Em Movimento (Derivando)"),
-	Stabilized  UMETA(DisplayName = "Inércia Zero (Travado)")
-};
 
 UCLASS()
 class DOCKSIM_API UShipHUDWidget : public UUserWidget
@@ -42,40 +37,16 @@ protected:
 	virtual void NativeDestruct() override;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> TXT_VelocityFWD;
-
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> TXT_VelocityLAT;
-
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> TXT_VelocityVERT;
-	
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> TXT_Pitch;
-
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> TXT_Yaw;
-
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> TXT_Roll;
-	
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> TXT_EngineScale;
-	
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UImage> IMG_Prograde;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Flight UI|Icons")
-	TObjectPtr<class UTexture2D> Tex_Prograde;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Flight UI|Icons")
-	TObjectPtr<class UTexture2D> Tex_Retrograde;
-	
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<class UWidgetSwitcher> AlertSwitcher;
 	
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
-	TObjectPtr<UDockingHUDWidget> WBP_DockingPanel;
+	TObjectPtr<UCameraHUDWidget> WBP_DockingPanel;
+	
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
+	TObjectPtr<UTelemetryDockingHUDWidget> WBP_TelemetryDockingHUD;
+		
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
+	TObjectPtr<UTelemetrySpeedHUDWidget> WBP_TelemetrySpeedHUDWidget;
 
 private:
 	
@@ -86,5 +57,4 @@ private:
 	TObjectPtr<USpaceTelemetryComponent> CachedTelemetryComp;
 
 	FTimerHandle TelemetryTimerHandle;
-	EShipMovementState CurrentMovementState = EShipMovementState::Stabilized;
 };

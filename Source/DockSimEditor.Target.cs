@@ -11,5 +11,10 @@ public class DockSimEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V6;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
 		ExtraModuleNames.Add("DockSim");
+
+		// ESSA LINHA É A SOLUÇÃO:
+		// Força o Unreal a ignorar o PATH do Windows e criar um ambiente limpo.
+		bOverrideBuildEnvironment = true;
+		bUseUnityBuild = false;
 	}
 }

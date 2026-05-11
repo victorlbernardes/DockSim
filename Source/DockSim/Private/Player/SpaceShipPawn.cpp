@@ -14,7 +14,7 @@
 #include "DockingPort/SpaceDockingPort.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "Components/SpotLightComponent.h"
-#include "UI/DockingHUDWidget.h"
+#include "UI/CameraHUDWidget.h"
 #include "Components/SpaceAudioComponent.h"
 #include "UI/ShipHUDWidget.h"
 

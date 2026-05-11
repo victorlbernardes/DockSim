@@ -11,5 +11,8 @@ public class DockSimTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V6;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
 		ExtraModuleNames.Add("DockSim");
+
+		// Adicione esta linha para isolar o ambiente de compilação
+		bOverrideBuildEnvironment = true;
 	}
 }

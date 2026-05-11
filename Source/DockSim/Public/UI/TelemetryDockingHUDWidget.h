@@ -8,7 +8,7 @@
 class UTextBlock;
 class UImage; 
 UCLASS()
-class UTelemetryDockingHUDWidget: public UUserWidget
+class DOCKSIM_API UTelemetryDockingHUDWidget: public UUserWidget
 {
 	GENERATED_BODY()
 
