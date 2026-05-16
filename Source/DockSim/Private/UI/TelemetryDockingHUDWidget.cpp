@@ -5,13 +5,13 @@ void UTelemetryDockingHUDWidget::UpdateTelemetry(float DistanceMeters, float Spe
 	if (TXT_Distance)
 	{
 		// Formata o número para ter sempre zeros à esquerda e 1 casa decimal (Ex: 014.5)
-		FString DistString = FString::Printf(TEXT("DST: %3.1f m"), DistanceMeters);
+		FString DistString = FString::Printf(TEXT("%3.1f m"), DistanceMeters);
 		TXT_Distance->SetText(FText::FromString(DistString));
 	}
 
 	if (TXT_Speed)
 	{
-		FString SpeedString = FString::Printf(TEXT("SPD: %4.1f m/s"), SpeedMPS);
+		FString SpeedString = FString::Printf(TEXT("%4.1f m/s"), SpeedMPS);
 		TXT_Speed->SetText(FText::FromString(SpeedString));
 
 		// Lógica de Tensão Visual: Se passar de 2.0 m/s (perigo), fica vermelho

@@ -10,7 +10,7 @@
 class USpaceTelemetryComponent;
 class UCameraHUDWidget;
 class UTelemetryDockingHUDWidget;
-class UTelemetrySpeedHUDWidget;
+class UTelemetryMovementHUDWidget;
 struct FSpaceTelemetryData; 
 
 UCLASS()
@@ -46,7 +46,7 @@ protected:
 	TObjectPtr<UTelemetryDockingHUDWidget> WBP_TelemetryDockingHUD;
 		
 	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
-	TObjectPtr<UTelemetrySpeedHUDWidget> WBP_TelemetrySpeedHUDWidget;
+	TObjectPtr<UTelemetryMovementHUDWidget> WBP_TelemetryMovementHUDWidget;
 
 private:
 	

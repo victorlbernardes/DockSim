@@ -6,7 +6,7 @@
 #include "Components/WidgetSwitcher.h"
 #include "UI/CameraHUDWidget.h"
 #include "UI/TelemetryDockingHUDWidget.h"
-#include "UI/TelemetrySpeedHUDWidget.h"
+#include "UI/TelemetryMovementHUDWidget.h"
 
 void UShipHUDWidget::NativeConstruct()
 {
@@ -18,9 +18,9 @@ void UShipHUDWidget::NativeConstruct()
 	{
 		// CONFIGURA O TIMER DE TELEMETRIA (Fluxo Contínuo)
 		CachedTelemetryComp = PlayerPawn->FindComponentByClass<USpaceTelemetryComponent>();
-		if (WBP_TelemetrySpeedHUDWidget)
+		if (WBP_TelemetryMovementHUDWidget)
 		{
-			WBP_TelemetrySpeedHUDWidget->InitializeTelemetry(CachedTelemetryComp);
+			WBP_TelemetryMovementHUDWidget->InitializeTelemetry(CachedTelemetryComp);
 		}
 		if (CachedTelemetryComp)
 		{
@@ -44,9 +44,9 @@ void UShipHUDWidget::UpdateContinuousTelemetry()
 {
 	if (!CachedTelemetryComp) return;
 
-	if (WBP_TelemetrySpeedHUDWidget)
+	if (WBP_TelemetryMovementHUDWidget)
 	{
-		WBP_TelemetrySpeedHUDWidget->UpdateContinuousTelemetry();
+		WBP_TelemetryMovementHUDWidget->UpdateContinuousTelemetry();
 	}
 }
 
@@ -82,6 +82,7 @@ void UShipHUDWidget::SetDockingHUDVisible(bool bVisible)
 	{
 		ESlateVisibility NewVisibility = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Hidden;
 		WBP_DockingPanel->SetVisibility(NewVisibility);
+		WBP_TelemetryDockingHUD->SetVisibility(NewVisibility);
 	}
 }
 
