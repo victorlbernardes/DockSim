@@ -3,7 +3,6 @@
 #include "Components/ActorComponent.h"
 #include "SpaceResourceComponent.generated.h"
 
-// 1. DECLARAÇÃO DO ENUM DE STATUS DO COMBUSTÍVEL
 UENUM(BlueprintType)
 enum class EFuelStatus : uint8
 {
@@ -12,7 +11,6 @@ enum class EFuelStatus : uint8
 	Empty       UMETA(DisplayName = "Tanque Vazio")
 };
 
-// 2. O NOVO DELEGATE (Agora ele envia o Enum junto com o aviso!)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFuelStatusChanged, EFuelStatus, NewStatus);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -21,14 +19,12 @@ class DOCKSIM_API USpaceResourceComponent : public UActorComponent
 	GENERATED_BODY()
 public:
 	USpaceResourceComponent();
-	// Funções Públicas (A API do seu Tanque)
 	UFUNCTION(BlueprintCallable, Category = "Ship Resources")
 	float GetFuelPercent() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Ship Resources")
 	bool HasFuel() const;
 
-	// Retorna verdadeiro se conseguiu consumir, falso se o tanque secou
 	bool ConsumeFuel(float Amount);
 	
 	UPROPERTY(BlueprintAssignable, Category = "Ship Resources|Events")

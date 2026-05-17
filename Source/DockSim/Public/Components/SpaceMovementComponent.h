@@ -23,10 +23,8 @@ class USpaceMovementComponent : public UActorComponent
 public:	
 	USpaceMovementComponent();
 	
-	// NOVO: Função para alterar o modo pelo Cérebro
 	void SetThrustPowerMode(EThrustPowerMode NewMode);
 
-	// O Cérebro agora manda o "alvo" e não a força bruta
 	void RequestTranslation(FVector TranslationInput);
 	void AdjustThrottle(float ThrottleValue);
 	void RequestRotation(FVector TorqueInput);

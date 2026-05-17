@@ -49,27 +49,21 @@ ASpaceShipPawn::ASpaceShipPawn()
 	SensorShield->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 	SensorShield->SetGenerateOverlapEvents(true);
 
-	// ==========================================
-	// MONITORES FÍSICOS 3D
-	// ==========================================
-	
 	LeftHeadlight = CreateDefaultSubobject<USpotLightComponent>(TEXT("LeftHeadlight"));
 	LeftHeadlight->SetupAttachment(ShipMesh);
-	// Move a luz um pouco para frente (X) e para a esquerda (Y)
 	LeftHeadlight->SetRelativeLocation(FVector(200.0f, -150.0f, 0.0f)); 
-	LeftHeadlight->Intensity = 500000.0f; // Força no vácuo
+	LeftHeadlight->Intensity = 500000.0f; 
 	LeftHeadlight->AttenuationRadius = 10000.0f;
-	LeftHeadlight->InnerConeAngle = 20.0f; // Foco central forte
-	LeftHeadlight->OuterConeAngle = 45.0f; // Penumbra suave
-	LeftHeadlight->SetVisibility(false); // Começa desligado para economizar bateria!
-	LeftHeadlight->bUseInverseSquaredFalloff = false; // Torna o alcance mais "linear" e previsível
-	LeftHeadlight->SetCastShadows(false); // Faróis de nave geralmente não precisam projetar sombras do cenário para o MVP
+	LeftHeadlight->InnerConeAngle = 20.0f;
+	LeftHeadlight->OuterConeAngle = 45.0f; 
+	LeftHeadlight->SetVisibility(false);
+	LeftHeadlight->bUseInverseSquaredFalloff = false; 
+	LeftHeadlight->SetCastShadows(false); 
 
 	RightHeadlight = CreateDefaultSubobject<USpotLightComponent>(TEXT("RightHeadlight"));
 	RightHeadlight->SetupAttachment(ShipMesh);
-	// Move a luz um pouco para frente (X) e para a direita (Y)
 	RightHeadlight->SetRelativeLocation(FVector(200.0f, 150.0f, 0.0f));
-	RightHeadlight->Intensity = 500000.0f; // Força no vácuo
+	RightHeadlight->Intensity = 500000.0f;
 	RightHeadlight->AttenuationRadius = 10000.0f;
 	RightHeadlight->bUseInverseSquaredFalloff = false;
 	RightHeadlight->SetCastShadows(false);
@@ -103,17 +97,11 @@ void ASpaceShipPawn::BeginPlay()
 		SensorShield->OnComponentBeginOverlap.AddDynamic(this, &ASpaceShipPawn::OnSensorOverlap);
 	}
 
-	// ==========================================
-	// CÂMERA DINÂMICA LIGADA AO MONITOR 3D
-	// ==========================================
-	
-	// 1. Cria o Render Target de forma dinâmica e segura
 	DynamicDockingRT = NewObject<UTextureRenderTarget2D>(this);
 	DynamicDockingRT->RenderTargetFormat = RTF_RGBA8;
 	DynamicDockingRT->InitAutoFormat(1024, 1024); 
 	DynamicDockingRT->UpdateResourceImmediate(true);
 
-	// 2. Conecta a câmara da nave ao Render Target
 	if (Cam_Docking)
 	{
 		Cam_Docking->TextureTarget = DynamicDockingRT;
@@ -122,23 +110,15 @@ void ASpaceShipPawn::BeginPlay()
 	
 	if (HUDClass)
 	{
-		// 2. Cria o Widget de fato na memória e preenche o nosso ponteiro!
 		MainHUDInstance = CreateWidget<UShipHUDWidget>(GetWorld(), HUDClass);
 		
 		if (MainHUDInstance)
 		{
-			// 3. Adiciona na tela do jogador
 			MainHUDInstance->AddToViewport();
-			
-			// 4. Garante que o painel de docking comece invisível por padrão
 			MainHUDInstance->SetDockingHUDVisible(false);
 		}
 	}
-	else
-	{
-		// Um aviso amigável para você não esquecer de setar a variável no Editor
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red, TEXT("ERRO: HUDClass não configurada no BP_SpaceShipPawn!"));
-	}
+	
 }
 	
 void ASpaceShipPawn::Tick(float DeltaTime)
@@ -324,11 +304,10 @@ void ASpaceShipPawn::OnDockButtonPressed(const FInputActionValue& Value)
     
     	if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = true;
 
-    	// ✔️ Avisa o HUD para aparecer
     	if (MainHUDInstance) 
     	{
     		MainHUDInstance->SetDockingHUDVisible(true);
-    		MainHUDInstance->SetDockingVideo(DynamicDockingRT); // A entrega da fita de vídeo!
+    		MainHUDInstance->SetDockingVideo(DynamicDockingRT);
     	}
 
     	GetWorldTimerManager().SetTimer(TelemetryTimerHandle, this, &ASpaceShipPawn::UpdateDockingMonitor, 0.1f, true);
@@ -340,10 +319,8 @@ void ASpaceShipPawn::OnDockButtonPressed(const FInputActionValue& Value)
     	if (MainHUDInstance) MainHUDInstance->SetDockingHUDVisible(false);
     	if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = false;
 
-    	// DESLIGA O TIMER: Para de gastar CPU imediatamente
     	GetWorldTimerManager().ClearTimer(TelemetryTimerHandle);
 
-    	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange, TEXT("MODO DE POUSO ABORTADO."));
     	break;
     }
 }
@@ -359,7 +336,6 @@ void ASpaceShipPawn::ExecuteHardcoreDocking(ASpaceDockingPort* TargetPort)
 
 	CurrentFlightState = EShipFlightState::Docked;
 	
-	// Desliga a tela do painel após o docking ser concluído
 	if (MainHUDInstance) MainHUDInstance->SetDockingHUDVisible(false);
 	if (Cam_Docking) Cam_Docking->bCaptureEveryFrame = false;
 
@@ -449,11 +425,8 @@ void ASpaceShipPawn::OnPausePressed(const FInputActionValue& Value)
 
 void ASpaceShipPawn::UpdateDockingMonitor()
 {
-	// 1. CHECAGEM DE SEGURANÇA: 
-	// Em vez de checar o monitor 3D, checamos se o HUD existe e se estamos no modo de pouso.
 	if (!TelemetryComponent || !MainHUDInstance || CurrentFlightState != EShipFlightState::LandingMode) return;
 
-	// 2. BUSCA OS DADOS (Lógica mantida, pois está ótima)
 	FSpaceTelemetryData CurrentData = TelemetryComponent->GetLatestTelemetry();
 
 	FString StatusText = TEXT("[ MODO DE POUSO ATIVO ]");
@@ -470,8 +443,6 @@ void ASpaceShipPawn::UpdateDockingMonitor()
 		TextColor = FLinearColor::Green;
 	}
 
-	// 3. ENVIA PARA O HUD
-	// Substituímos o "Monitor3D" pelo nosso MainHUDInstance
 	MainHUDInstance->UpdateDockingTelemetry(
 		CurrentData.Distance, 
 		CurrentData.VelTotal, 
@@ -480,20 +451,12 @@ void ASpaceShipPawn::UpdateDockingMonitor()
 		StatusText, 
 		TextColor
 	);
-    
-	// Debug mantido para facilitar seus testes no editor
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(1, 0.1f, FColor::Cyan, FString::Printf(TEXT("Bico: %.1f %% | Eixo: %.1f %%"), CurrentData.NoseAlignmentPercent, CurrentData.RollAlignmentPercent));
-	}
 }
 
 void ASpaceShipPawn::OnToggleHeadlights(const FInputActionValue& Value)
 {
-	// Se a nave estiver morta, não tem energia para a luz
 	if (CurrentFlightState == EShipFlightState::Disabled) return;
 
-	// O método nativo da Unreal que inverte de True para False automaticamente
 	if (LeftHeadlight) LeftHeadlight->ToggleVisibility();
 	if (RightHeadlight) RightHeadlight->ToggleVisibility();
 

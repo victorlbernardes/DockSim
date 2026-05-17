@@ -15,7 +15,6 @@ public:
 	void HandleFuelStatusChanged(EFuelStatus NewStatus);
 	
 protected:
-	// Variáveis que o Blueprint vai ler para desenhar as barras
 	UPROPERTY(BlueprintReadOnly, Category = "Ship Systems|Resources")
 	float FuelPercent = 1.0f;
 

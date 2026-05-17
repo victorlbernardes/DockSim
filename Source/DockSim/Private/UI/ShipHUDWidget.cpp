@@ -12,11 +12,9 @@ void UShipHUDWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// O HUD do capacete volta a usar o padrão Viewport com segurança!
 	APawn* PlayerPawn = GetOwningPlayerPawn();
 	if (PlayerPawn)
 	{
-		// CONFIGURA O TIMER DE TELEMETRIA (Fluxo Contínuo)
 		CachedTelemetryComp = PlayerPawn->FindComponentByClass<USpaceTelemetryComponent>();
 		if (WBP_TelemetryMovementHUDWidget)
 		{
@@ -24,7 +22,6 @@ void UShipHUDWidget::NativeConstruct()
 		}
 		if (CachedTelemetryComp)
 		{
-			// Em vez de NativeTick, chamamos a função a cada 0.1 segundos (10 FPS)
 			if (UWorld* World = GetWorld())
 			{
 				World->GetTimerManager().SetTimer(TelemetryTimerHandle, this, &UShipHUDWidget::UpdateContinuousTelemetry, 0.016f, true);
@@ -68,7 +65,6 @@ void UShipHUDWidget::UpdateSignalAlert(ESignalStatus NewStatus)
 
 void UShipHUDWidget::SetDockingVideo(UTextureRenderTarget2D* TargetTexture)
 {
-	// Delega a responsabilidade para o submódulo
 	if (WBP_DockingPanel)
 	{
 		WBP_DockingPanel->SetCameraFeed(TargetTexture);
@@ -77,7 +73,6 @@ void UShipHUDWidget::SetDockingVideo(UTextureRenderTarget2D* TargetTexture)
 
 void UShipHUDWidget::SetDockingHUDVisible(bool bVisible)
 {
-	// Esconde ou mostra o painel inteiro de docking
 	if (WBP_DockingPanel)
 	{
 		ESlateVisibility NewVisibility = bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Hidden;
@@ -88,7 +83,6 @@ void UShipHUDWidget::SetDockingHUDVisible(bool bVisible)
 
 void UShipHUDWidget::UpdateDockingTelemetry(float Distance, float Speed, float NoseAlign, float RollAlign, const FString& StatusText, FLinearColor TextColor)
 {
-	// Repassa os dados para o widget especializado tratar as cores e textos
 	if (WBP_TelemetryDockingHUD)
 	{
 		WBP_TelemetryDockingHUD->UpdateTelemetry(Distance, Speed, NoseAlign, RollAlign, StatusText, TextColor);

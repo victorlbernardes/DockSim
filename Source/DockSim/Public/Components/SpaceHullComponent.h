@@ -23,7 +23,6 @@ class DOCKSIM_API USpaceHullComponent : public UActorComponent
 public:	
 	USpaceHullComponent();
 
-	// Função para processar um impacto vindo de fora
 	void ProcessImpact(float ImpactSpeed);
 	
 	UPROPERTY(BlueprintAssignable, Category = "Hull|Events")
@@ -38,12 +37,11 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	// Limites de resistência configuráveis por objeto
 	UPROPERTY(EditAnywhere, Category = "Hull|Settings")
-	float WarningThreshold = 2.0f; // m/s
+	float WarningThreshold = 2.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Hull|Settings")
-	float CriticalThreshold = 5.0f; // m/s
+	float CriticalThreshold = 5.0f;
 
 private:
 	EIntegrityState CurrentState = EIntegrityState::Nominal;

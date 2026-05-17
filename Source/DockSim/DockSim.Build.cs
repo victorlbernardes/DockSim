@@ -6,11 +6,8 @@ public class DockSim : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		// Desativa o Unity Build para este módulo específico. 
-		// Isso reduz a quantidade de arquivos processados em lote que podem inflar o ambiente.
 		bUseUnity = false;
 
-		// Força a inclusão apenas do necessário
 		bLegacyPublicIncludePaths = false;
 
 		PublicDependencyModuleNames.AddRange(new string[] { 

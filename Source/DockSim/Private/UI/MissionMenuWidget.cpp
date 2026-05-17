@@ -8,7 +8,6 @@ void UMissionMenuWidget::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    // Vincula os eventos de clique às funções C++
     if (BTN_Restart)
         BTN_Restart->OnClicked.AddDynamic(this, &UMissionMenuWidget::OnRestartClicked);
 
@@ -23,7 +22,6 @@ void UMissionMenuWidget::SetupMenuState(EMissionState NewState)
 {
     if (!TXT_Title) return;
 
-    // Reset padrão: Esconder botão de continuar (só aparece na pausa)
     if (BTN_Continue) BTN_Continue->SetVisibility(ESlateVisibility::Collapsed);
 
     switch (NewState)
@@ -59,13 +57,11 @@ void UMissionMenuWidget::OnContinueClicked()
 
 void UMissionMenuWidget::OnRestartClicked()
 {
-    // Obtém o nome do mapa atual e recarrega
     FString CurrentLevelName = UGameplayStatics::GetCurrentLevelName(GetWorld());
     UGameplayStatics::OpenLevel(GetWorld(), FName(*CurrentLevelName));
 }
 
 void UMissionMenuWidget::OnMainMenuClicked()
 {
-    // Substitua "MainMenuMap" pelo nome real do seu mapa de menu
     UGameplayStatics::OpenLevel(GetWorld(), TEXT("MainMenuMap"));
 }

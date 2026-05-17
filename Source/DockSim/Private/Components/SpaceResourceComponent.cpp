@@ -2,13 +2,13 @@
 
 USpaceResourceComponent::USpaceResourceComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false; // Esse componente não precisa de Tick! Ele é passivo.
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 void USpaceResourceComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	CurrentFuel = MaxFuel; // Enche o tanque quando a nave "nasce"
+	CurrentFuel = MaxFuel; 
 }
 
 float USpaceResourceComponent::GetFuelPercent() const
@@ -28,7 +28,6 @@ bool USpaceResourceComponent::ConsumeFuel(float Amount)
 
 	CurrentFuel = FMath::Clamp(CurrentFuel - Amount, 0.0f, MaxFuel);
 
-	// 1. Descobre qual DEVERIA ser o status agora
 	EFuelStatus CalculatedStatus = EFuelStatus::Normal;
 	
 	if (CurrentFuel <= 0.0f)

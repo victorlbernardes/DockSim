@@ -4,7 +4,6 @@
 #include "Components/ActorComponent.h"
 #include "SpaceAudioComponent.generated.h"
 
-// Estados do Motor para evitar Booleans
 UENUM(BlueprintType)
 enum class EEngineAudioState : uint8
 {

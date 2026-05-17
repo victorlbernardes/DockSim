@@ -12,28 +12,22 @@ struct FSpaceTelemetryData
 {
 	GENERATED_BODY()
 
-	// Engine Scale
 	UPROPERTY(BlueprintReadOnly) float CurrentEngineScale = 0.0f;
 	
-	// Velocidades Locais (m/s)
 	UPROPERTY(BlueprintReadOnly) float VelForward = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float VelRight   = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float VelUp      = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float VelTotal = 0.0f;
 
-	// Atitude (Graus)
 	UPROPERTY(BlueprintReadOnly) float Pitch = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float Yaw   = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float Roll  = 0.0f;
     
 	UPROPERTY(BlueprintReadOnly) EThrustPowerMode ThrustMode = EThrustPowerMode::Standard;
 
-	// --- NOVOS DADOS PARA O MONITOR DE DOCKING ---
 	UPROPERTY(BlueprintReadOnly) float Distance = 0.0f;
 	
-	// Alinhamento do Bico (Pitch e Yaw)
 	UPROPERTY(BlueprintReadOnly) float NoseAlignmentPercent = 0.0f;
-	// A nova métrica exclusiva de Roll (Teto com Teto)
 	UPROPERTY(BlueprintReadOnly) float RollAlignmentPercent = 0.0f;
 };
 
@@ -46,7 +40,6 @@ public:
 	USpaceTelemetryComponent();
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	// As variáveis que o HUD vai ler (BlueprintReadOnly)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Telemetry")
 	float ForwardSpeed;
 
@@ -65,7 +58,6 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	// O Multiplicador do seu GDD para criar a "Ilusão de Velocidade"
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Telemetry Settings")
 	float SimulationMultiplier = 100.0f;
 

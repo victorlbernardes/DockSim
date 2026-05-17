@@ -5,9 +5,6 @@
 #include "Components/SphereComponent.h"
 #include "SpaceShipPawn.generated.h"
 
-// -------------------------------------------------------------
-// FORWARD DECLARATIONS (Melhora o tempo de compilação)
-// -------------------------------------------------------------
 struct FInputActionValue;
 class UStaticMeshComponent;
 class UCameraComponent;
@@ -24,9 +21,6 @@ class UWidgetComponent;
 class UShipHUDWidget;
 class USpotLightComponent;
 
-// -------------------------------------------------------------
-// ENUMS DE ESTADO
-// -------------------------------------------------------------
 UENUM(BlueprintType)
 enum class EShipFlightState : uint8
 {
@@ -58,9 +52,6 @@ enum class EPilotVisionMode : uint8
 	FreeLook  UMETA(DisplayName = "Olhar ao Redor (Livre)")
 };
 
-// -------------------------------------------------------------
-// CLASSE PRINCIPAL
-// -------------------------------------------------------------
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDockingCompleted);
 UCLASS()
 class DOCKSIM_API ASpaceShipPawn : public APawn
@@ -71,13 +62,11 @@ public:
 	ASpaceShipPawn();
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
-	// Acesso aos Estados
 	EShipFlightState GetCurrentFlightState() const { return CurrentFlightState; }
 	
 	UFUNCTION(BlueprintPure, Category = "Ship Systems|Docking")
 	EDockingMonitorState GetMonitorState() const { return CurrentMonitorState; }
 
-	// Interação com a Estação Espacial
 	UFUNCTION(BlueprintCallable, Category = "Ship Systems|Docking")
 	void UpdateDockingSignal(ESignalStatus NewSignalStatus);
 	void ExecuteHardcoreDocking(class ASpaceDockingPort* TargetPort);
@@ -99,9 +88,6 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
-	// ==========================================
-	// COMPONENTES DA NAVE
-	// ==========================================
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> ShipMesh;
 
@@ -126,9 +112,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USphereComponent> SensorShield;
 
-	// ==========================================
-	// SISTEMA DE DOCKING, CFTV E MONITORES 3D
-	// ==========================================
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|CCTV")
 	TObjectPtr<UCFTVComponent> CFTVSystem;
 
@@ -143,22 +126,16 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ship Systems|Lights")
 	TObjectPtr<USpotLightComponent> RightHeadlight;
-	// ==========================================
-	// INTERFACE (UI) & RENDERS DINÂMICOS
-	// ==========================================
+
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<UShipHUDWidget> HUDClass;
 	
 	UPROPERTY()
 	TObjectPtr<UShipHUDWidget> MainHUDInstance;
 
-	// O arquivo de vídeo gerado dinamicamente para a câmera de ré
 	UPROPERTY(Transient)
 	TObjectPtr<UTextureRenderTarget2D> DynamicDockingRT;
 
-	// ==========================================
-	// INPUTS (Enhanced Input)
-	// ==========================================
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> MoveAction;
 	
@@ -186,9 +163,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> PauseAction;
 
-	// ==========================================
-	// CONFIGURAÇÕES DA NAVE (Ajustáveis no Editor)
-	// ==========================================
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Settings|Pilot Neck")
 	float MaxLookUp = 60.0f;
 
@@ -204,9 +178,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Settings|Damage")
 	float MaxSafeImpactSpeed = 2.0f;
 
-	// ==========================================
-	// FUNÇÕES DE INPUT E LÓGICA
-	// ==========================================
 	void Move(const FInputActionValue& Value);
 	void OnThrottle(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -218,7 +189,6 @@ protected:
 	void OnPausePressed(const FInputActionValue& Value);
 	void OnToggleHeadlights(const FInputActionValue& Value);
 	
-	// Callbacks de Física e Dano
 	UFUNCTION()
 	void OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	
@@ -226,7 +196,6 @@ protected:
 	void OnSensorOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 private:
-	// Máquinas de Estado e Variáveis Privadas
 	EShipFlightState CurrentFlightState = EShipFlightState::FreeFlying;
 	EPilotVisionMode CurrentVisionMode = EPilotVisionMode::Standard;
 	ESignalStatus CurrentSignalStatus = ESignalStatus::Lost;

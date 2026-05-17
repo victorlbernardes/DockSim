@@ -6,14 +6,12 @@
 
 ASpacePlayerController::ASpacePlayerController()
 {
-    // Construtor padrão
 }
 
 void ASpacePlayerController::BeginPlay()
 {
     Super::BeginPlay();
 
-    // Cria o HUD principal (Telemetria/Sinal) no início do jogo
     if (HUDClass)
     {
         MainHUDInstance = CreateWidget<UShipHUDWidget>(this, HUDClass);
@@ -62,7 +60,6 @@ void ASpacePlayerController::HandleStateChange(EMissionState NewState)
 {
     if (NewState == EMissionState::Playing)
     {
-        // --- VOLTANDO AO VOO ---
         bShowMouseCursor = false;
         SetInputMode(FInputModeGameOnly());
         SetPause(false);
@@ -75,7 +72,6 @@ void ASpacePlayerController::HandleStateChange(EMissionState NewState)
     }
     else
     {
-        // --- PAUSA, VITÓRIA OU DERROTA ---
         bShowMouseCursor = true;
         
         FInputModeGameAndUI InputMode;
@@ -83,10 +79,8 @@ void ASpacePlayerController::HandleStateChange(EMissionState NewState)
         InputMode.SetWidgetToFocus(nullptr); 
         SetInputMode(InputMode);
         
-        // Pausa o tempo do mundo (física, timers, etc)
         SetPause(true);
 
-        // Garante que o widget de menu existe e está configurado
         if (!ActiveMenuInstance && MissionMenuClass)
         {
             ActiveMenuInstance = CreateWidget<UMissionMenuWidget>(this, MissionMenuClass);
@@ -99,7 +93,6 @@ void ASpacePlayerController::HandleStateChange(EMissionState NewState)
                 ActiveMenuInstance->AddToViewport();
             }
             
-            // O Menu se auto-ajusta (Texto/Cor) com base no Enum
             ActiveMenuInstance->SetupMenuState(NewState); 
         }
     }
@@ -107,7 +100,6 @@ void ASpacePlayerController::HandleStateChange(EMissionState NewState)
 
 void ASpacePlayerController::TogglePauseMenu()
 {
-    // Não permite pausar se a missão já acabou
     if (CurrentMissionState == EMissionState::Victory || CurrentMissionState == EMissionState::GameOver) return;
 
     if (CurrentMissionState == EMissionState::Playing)
