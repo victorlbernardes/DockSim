@@ -27,18 +27,18 @@ void UMissionMenuWidget::SetupMenuState(EMissionState NewState)
     switch (NewState)
     {
     case EMissionState::Paused:
-        TXT_Title->SetText(FText::FromString(TEXT("SISTEMAS EM ESPERA")));
+        TXT_Title->SetText(FText::FromString(TEXT("SYSTEM ON HOLD")));
         TXT_Title->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
         if (BTN_Continue) BTN_Continue->SetVisibility(ESlateVisibility::Visible);
         break;
 
     case EMissionState::Victory:
-        TXT_Title->SetText(FText::FromString(TEXT("CARGA ENTREGUE - SUCESSO")));
+        TXT_Title->SetText(FText::FromString(TEXT("DOCKING - SUCCESS")));
         TXT_Title->SetColorAndOpacity(FSlateColor(FLinearColor::Green));
         break;
 
     case EMissionState::GameOver:
-        TXT_Title->SetText(FText::FromString(TEXT("SINAL PERDIDO - CASCO DESTRUÍDO")));
+        TXT_Title->SetText(FText::FromString(TEXT("SIGNAL LOST - HULL DESTROYED")));
         TXT_Title->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
         break;
         

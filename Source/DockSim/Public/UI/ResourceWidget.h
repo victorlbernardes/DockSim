@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/SpaceResourceComponent.h"
+#include "Components/SpaceTelemetryComponent.h"
 #include "ResourceWidget.generated.h"
 
 UCLASS()
@@ -19,6 +20,9 @@ protected:
 	float FuelPercent = 1.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Ship Systems|Resources")
+	EThrustPowerMode ThrustPowerMode;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Ship Systems|Resources")
 	EFuelStatus CurrentVisualStatus = EFuelStatus::Normal;
 	
 
@@ -27,4 +31,5 @@ protected:
 
 private:
 	TWeakObjectPtr<class USpaceResourceComponent> CachedResourceComp;
+	TWeakObjectPtr<class USpaceTelemetryComponent> CachedTelemetryComp;
 };

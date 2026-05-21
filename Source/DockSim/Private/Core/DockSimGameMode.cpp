@@ -26,8 +26,6 @@ void ADockSimGameMode::BeginPlay()
 
 void ADockSimGameMode::OnShipDestroyed()
 {
-	UE_LOG(LogTemp, Error, TEXT("GAMEMODE: Nave destruída. Invocando Game Over."));
-
 	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
 	if (PC)
 	{

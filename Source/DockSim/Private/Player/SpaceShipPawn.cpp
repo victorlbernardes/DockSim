@@ -296,9 +296,6 @@ void ASpaceShipPawn::OnDockButtonPressed(const FInputActionValue& Value)
             CurrentFlightState = EShipFlightState::FreeFlying;
     	if (MainHUDInstance) MainHUDInstance->SetDockingHUDVisible(false);
 
-            if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Cyan, TEXT("TRAVAS LIBERADAS. Voo Livre."));
-            break;
-
     case EShipFlightState::FreeFlying:
     	CurrentFlightState = EShipFlightState::LandingMode;
     
@@ -370,11 +367,6 @@ void ASpaceShipPawn::OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 	float ImpactSpeedCM = FMath::Abs(FVector::DotProduct(RelativeVelocity, -Hit.ImpactNormal));
 	float ImpactSpeedMPS = ImpactSpeedCM / 100.0f;
 
-	if (GEngine) 
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, FString::Printf(TEXT("ESCUDO SENSOR: Impacto calculado a %.1f m/s"), ImpactSpeedMPS));
-	}
-
 	if (HullComponent)
 	{
 		HullComponent->ProcessImpact(ImpactSpeedMPS);
@@ -383,7 +375,6 @@ void ASpaceShipPawn::OnShipHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 
 void ASpaceShipPawn::HandleHullWarning(float ImpactSpeed)
 {
-	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Yellow, FString::Printf(TEXT("ALERTA DA NAVE: Casco avariado a %.1f m/s."), ImpactSpeed));
 	if (AudioSystem)
 	{
 		AudioSystem->PlayShipCrashSound();
@@ -393,8 +384,6 @@ void ASpaceShipPawn::HandleHullWarning(float ImpactSpeed)
 void ASpaceShipPawn::HandleHullCritical()
 {
 	CurrentFlightState = EShipFlightState::Disabled;
-
-	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 8.0f, FColor::Red, TEXT("SISTEMAS CRÍTICOS: Perda total de controlo de voo."));
 
 	if (ShipMesh)
 	{
@@ -429,18 +418,18 @@ void ASpaceShipPawn::UpdateDockingMonitor()
 
 	FSpaceTelemetryData CurrentData = TelemetryComponent->GetLatestTelemetry();
 
-	FString StatusText = TEXT("[ MODO DE POUSO ATIVO ]");
+	FString StatusText = TEXT("[ DOCKING MODE ACTIVATED ]");
 	FLinearColor TextColor = FLinearColor::Yellow;
 
 	if (CurrentData.VelTotal > MaxSafeImpactSpeed)
 	{
-		StatusText = TEXT("[ PERIGO: ALTA VELOCIDADE DE APROXIMAÇÃO ]");
-		TextColor = FLinearColor::Red;
+		StatusText = TEXT("[ WARNING: HIGH VELOCITY ]");
+		TextColor = FColor::FromHex("#FFB347");
 	}
 	else if (CurrentData.NoseAlignmentPercent > 95.0f && CurrentData.RollAlignmentPercent > 95.0f && CurrentData.Distance < 2.0f)
 	{
-		StatusText = TEXT("[ ALINHAMENTO PERFEITO: MANTENHA ]");
-		TextColor = FLinearColor::Green;
+		StatusText = TEXT("[ PERFECT ALIGNMENT ]");
+		TextColor = FColor::FromHex("#38FF9C");
 	}
 
 	MainHUDInstance->UpdateDockingTelemetry(
@@ -463,6 +452,5 @@ void ASpaceShipPawn::OnToggleHeadlights(const FInputActionValue& Value)
 	if (GEngine)
 	{
 		FString State = (LeftHeadlight && LeftHeadlight->IsVisible()) ? TEXT("ON") : TEXT("OFF");
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, FString::Printf(TEXT("SISTEMA: Faróis %s"), *State));
 	}
 }

@@ -35,12 +35,10 @@ void UCFTVComponent::ToggleCameraMode()
 	if (CurrentCameraMode == ECameraSystemMode::Standby)
 	{
 		CurrentCameraMode = ECameraSystemMode::DockingMode;
-		UE_LOG(LogTemp, Warning, TEXT("CFTV: Monitor Ligado!"));
 	}
 	else
 	{
 		CurrentCameraMode = ECameraSystemMode::Standby;
-		UE_LOG(LogTemp, Warning, TEXT("CFTV: Monitor Desligado!"));
 	}
 
 	UpdateDockingCameraPowerStates();

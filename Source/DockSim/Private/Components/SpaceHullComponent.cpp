@@ -12,8 +12,6 @@ void USpaceHullComponent::BeginPlay()
 
 void USpaceHullComponent::ProcessImpact(float ImpactSpeed)
 {
-	UE_LOG(LogTemp, Warning, TEXT("HullComponent registrou impacto a: %.1f m/s"), ImpactSpeed);
-
 	if (CurrentState == EIntegrityState::Critical) return;
 
 	if (ImpactSpeed < 0.2f) return;

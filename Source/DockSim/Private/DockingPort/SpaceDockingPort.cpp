@@ -203,12 +203,7 @@ void ASpaceDockingPort::OnPrecisionVolumeOverlap(UPrimitiveComponent* Overlapped
 			else
 			{
 				SetDockingStatus(EDockingStatus::Denied);
-				UE_LOG(LogTemp, Warning, TEXT("Docking Negado! Velocidade OK: %d | Alinhamento OK: %d"), bIsSpeedOk, bIsAlignmentOk);
 			}
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("Falha: A nave encostou no berço, mas não estava em Landing Mode!"));
 		}
 	}
 }
