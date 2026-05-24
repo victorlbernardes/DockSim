@@ -47,8 +47,7 @@ void UResourceWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		{
 			FString ModeString = (Data.ThrustMode == EThrustPowerMode::Precision) ? TEXT("PRECISION") : TEXT("STANDARD");
 			TXT_ThrustMode->SetText(FText::FromString(ModeString));
-        
-			// Bônus: Você pode mudar a cor direto aqui também!
+			
 			FLinearColor TextColor = (Data.ThrustMode == EThrustPowerMode::Precision) ? FColor::FromHex("#FFB347") : FColor::FromHex("#37CFFFFF");
 			TXT_ThrustMode->SetColorAndOpacity(FSlateColor(TextColor));
 		}
