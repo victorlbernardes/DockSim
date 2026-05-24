@@ -2,8 +2,6 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Materials/MaterialInstanceDynamic.h"
-#include "Components/TextBlock.h"
-#include "Components/Image.h"
 #include "Player/SpaceShipPawn.h"
 #include "ShipHUDWidget.generated.h"
 

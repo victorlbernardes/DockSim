@@ -4,6 +4,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/SpaceResourceComponent.h"
 #include "Components/SpaceTelemetryComponent.h"
+#include "Components/TextBlock.h"
 #include "ResourceWidget.generated.h"
 
 UCLASS()
@@ -16,15 +17,15 @@ public:
 	void HandleFuelStatusChanged(EFuelStatus NewStatus);
 	
 protected:
-	UPROPERTY(BlueprintReadOnly, Category = "Ship Systems|Resources")
-	float FuelPercent = 1.0f;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Ship Systems|Resources")
-	EThrustPowerMode ThrustPowerMode = EThrustPowerMode::Standard;
 	
-	UPROPERTY(BlueprintReadOnly, Category = "Ship Systems|Resources")
-	EFuelStatus CurrentVisualStatus = EFuelStatus::Normal;
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* TXT_FuelPercent;
 	
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* TXT_ThrustMode;
+	
+	UPROPERTY(meta = (BindWidget))
+	class UProgressBar* PB_Fuel;	
 
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual void NativeConstruct() override;
