@@ -53,13 +53,18 @@ ASpaceDockingPort::ASpaceDockingPort()
 	CaptureArea->SetBoxExtent(FVector(1500.0f)); 
 	CaptureArea->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	CaptureArea->SetCollisionResponseToAllChannels(ECR_Overlap);
+	CaptureArea->OnComponentBeginOverlap.AddDynamic(this, &ASpaceDockingPort::OnCaptureAreaBeginOverlap);
+	CaptureArea->OnComponentEndOverlap.AddDynamic(this, &ASpaceDockingPort::OnCaptureAreaEndOverlap);
 	
 	PrecisionDockingVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("PrecisionDockingVolume"));
 	PrecisionDockingVolume->SetupAttachment(DockingAnchor);
     
-	PrecisionDockingVolume->SetBoxExtent(FVector(4.0f, 50.0f, 50.0f)); 
+	PrecisionDockingVolume->SetBoxExtent(FVector(100.0f, 50.0f, 50.0f));
 	PrecisionDockingVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	PrecisionDockingVolume->SetCollisionResponseToAllChannels(ECR_Overlap);
+		
+	PrecisionDockingVolume->OnComponentBeginOverlap.AddDynamic(this, &ASpaceDockingPort::OnPrecisionVolumeOverlap);
+	PrecisionDockingVolume->OnComponentEndOverlap.AddDynamic(this, &ASpaceDockingPort::OnPrecisionVolumeEndOverlap);
 	
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMeshLoader(TEXT("/Engine/BasicShapes/Sphere"));
 
@@ -176,34 +181,56 @@ EDockingStatus ASpaceDockingPort::RequestDockingPermission(float ApproachSpeedMP
 
 void ASpaceDockingPort::OnPrecisionVolumeOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(OtherActor))
-	{
-		if (Ship->GetCurrentFlightState() == EShipFlightState::LandingMode)
-		{
-			float Speed = Ship->GetVelocity().Size() / 100.0f;
-			bool bIsSpeedOk = (Speed <= MaxSafeDockingSpeed);
+    if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(OtherActor))
+    {
+        if (OtherComp != Ship->GetRootComponent()) return;
 
-			bool bIsAlignmentOk = false;
-            
-			if (USpaceTelemetryComponent* Telemetry = Ship->FindComponentByClass<USpaceTelemetryComponent>())
-			{
-				FSpaceTelemetryData Data = Telemetry->GetLatestTelemetry();
+        ShipInZone = Ship;
+        GetWorld()->GetTimerManager().SetTimer(DockingValidationTimer, this, &ASpaceDockingPort::CheckContinuousDocking, 0.1f, true);
+    }
+}
 
-				if (Data.NoseAlignmentPercent >= 95.0f && Data.RollAlignmentPercent >= 95.0f)
-				{
-					bIsAlignmentOk = true;
-				}
-			}
+void ASpaceDockingPort::OnPrecisionVolumeEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+    if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(OtherActor))
+    {
+        if (OtherComp != Ship->GetRootComponent()) return;
 
-			if (bIsSpeedOk && bIsAlignmentOk)
-			{
-				SetDockingStatus(EDockingStatus::Granted);
-				Ship->ExecuteHardcoreDocking(this);
-			}
-			else
-			{
-				SetDockingStatus(EDockingStatus::Denied);
-			}
-		}
-	}
+        ShipInZone = nullptr;
+        GetWorld()->GetTimerManager().ClearTimer(DockingValidationTimer);
+        SetDockingStatus(EDockingStatus::Standby); 
+    }
+}
+
+void ASpaceDockingPort::CheckContinuousDocking()
+{
+    if (!ShipInZone) return;
+
+    if (ShipInZone->GetCurrentFlightState() == EShipFlightState::LandingMode)
+    {
+        float Speed = ShipInZone->GetVelocity().Size() / 100.0f;
+        bool bIsSpeedOk = (Speed <= MaxSafeDockingSpeed);
+        bool bIsAlignmentOk = false;
+
+        if (USpaceTelemetryComponent* Telemetry = ShipInZone->FindComponentByClass<USpaceTelemetryComponent>())
+        {
+            FSpaceTelemetryData Data = Telemetry->GetLatestTelemetry();
+            if (Data.NoseAlignmentPercent >= 95.0f && Data.RollAlignmentPercent >= 95.0f)
+            {
+                bIsAlignmentOk = true;
+            }
+        }
+
+        if (bIsSpeedOk && bIsAlignmentOk)
+        {
+            SetDockingStatus(EDockingStatus::Granted);
+            ShipInZone->ExecuteHardcoreDocking(this);
+
+            GetWorld()->GetTimerManager().ClearTimer(DockingValidationTimer);
+        }
+        else
+        {
+            SetDockingStatus(EDockingStatus::Denied);
+        }
+    }
 }

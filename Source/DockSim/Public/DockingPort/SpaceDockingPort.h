@@ -8,6 +8,7 @@ class UBoxComponent;
 class UStaticMeshComponent;
 class UPointLightComponent;
 class UMaterialInstanceDynamic;
+class ASpaceShipPawn;
 
 UENUM(BlueprintType)
 enum class EDockingStatus : uint8
@@ -84,6 +85,17 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Docking|Visuals")
 	int32 NumberOfLights = 4;
+	
+	UPROPERTY()
+	TObjectPtr<ASpaceShipPawn> ShipInZone;
+
+	FTimerHandle DockingValidationTimer;
+
+	UFUNCTION()
+	void CheckContinuousDocking();
+
+	UFUNCTION()
+	void OnPrecisionVolumeEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 private:
 	FTimerHandle SirenTimerHandle;
