@@ -446,11 +446,15 @@ void ASpaceShipPawn::OnToggleHeadlights(const FInputActionValue& Value)
 {
 	if (CurrentFlightState == EShipFlightState::Disabled) return;
 
-	if (LeftHeadlight) LeftHeadlight->ToggleVisibility();
-	if (RightHeadlight) RightHeadlight->ToggleVisibility();
+	bHeadlightsOn = !bHeadlightsOn;
 
-	if (GEngine)
+	if (LeftHeadlight)
 	{
-		FString State = (LeftHeadlight && LeftHeadlight->IsVisible()) ? TEXT("ON") : TEXT("OFF");
+		LeftHeadlight->SetVisibility(bHeadlightsOn);
+	}
+
+	if (RightHeadlight)
+	{
+		RightHeadlight->SetVisibility(bHeadlightsOn);
 	}
 }

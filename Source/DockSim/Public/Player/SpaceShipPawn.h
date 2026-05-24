@@ -84,6 +84,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Ship Systems|Events")
 	FOnDockingCompleted OnDockingCompleted;
 	
+	bool GetHeadlight() const { return bHeadlightsOn; }
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -177,6 +178,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ship Settings|Damage")
 	float MaxSafeImpactSpeed = 2.0f;
+	
+	UPROPERTY(BlueprintReadOnly, Category="Ship Systems|Lights")
+	bool bHeadlightsOn = false;
 
 	void Move(const FInputActionValue& Value);
 	void OnThrottle(const FInputActionValue& Value);

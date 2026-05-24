@@ -25,6 +25,9 @@ protected:
 	class UTextBlock* TXT_ThrustMode;
 	
 	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* TXT_Headlights;
+	
+	UPROPERTY(meta = (BindWidget))
 	class UProgressBar* PB_Fuel;	
 
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -33,4 +36,5 @@ protected:
 private:
 	TWeakObjectPtr<class USpaceResourceComponent> CachedResourceComp;
 	TWeakObjectPtr<class USpaceTelemetryComponent> CachedTelemetryComp;
+	TObjectPtr<APawn> PlayerPawn;
 };

@@ -5,12 +5,13 @@
 #include "Components/SpaceTelemetryComponent.h"
 #include "Components/TextBlock.h"
 #include "GameFramework/Pawn.h"
+#include "Player/SpaceShipPawn.h"
 
 void UResourceWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	APawn* PlayerPawn = GetOwningPlayerPawn();
+	PlayerPawn = GetOwningPlayerPawn();
 	if (PlayerPawn)
 	{
 		CachedResourceComp = PlayerPawn->FindComponentByClass<USpaceResourceComponent>();
@@ -48,8 +49,27 @@ void UResourceWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 			FString ModeString = (Data.ThrustMode == EThrustPowerMode::Precision) ? TEXT("PRECISION") : TEXT("STANDARD");
 			TXT_ThrustMode->SetText(FText::FromString(ModeString));
 			
-			FLinearColor TextColor = (Data.ThrustMode == EThrustPowerMode::Precision) ? FColor::FromHex("#FFB347") : FColor::FromHex("#37CFFFFF");
+			FLinearColor TextColor = (Data.ThrustMode == EThrustPowerMode::Precision) ? FLinearColor::Green : FColor::FromHex("#FFB347");
 			TXT_ThrustMode->SetColorAndOpacity(FSlateColor(TextColor));
+		}
+	}
+	if (TXT_Headlights)
+	{
+		ASpaceShipPawn* ShipPawn = Cast<ASpaceShipPawn>(PlayerPawn);
+
+		if (ShipPawn)
+		{
+			const bool bHeadlightsOn = ShipPawn->GetHeadlight();
+			TXT_Headlights->SetText(
+				bHeadlightsOn
+				? FText::FromString("ON")
+				: FText::FromString("OFF")
+			);
+			TXT_Headlights->SetColorAndOpacity(
+				bHeadlightsOn
+				? FSlateColor(FLinearColor::Green)
+				: FSlateColor(FLinearColor(FColor::FromHex("#FFB347")))
+			);
 		}
 	}
 }
