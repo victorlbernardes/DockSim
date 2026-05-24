@@ -27,7 +27,6 @@ void UMissionMenuWidget::SetupMenuState(EMissionState NewState)
     switch (NewState)
     {
     case EMissionState::Paused:
-        TXT_Title->SetText(FText::FromString(TEXT("SYSTEM ON HOLD")));
         TXT_Title->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
         if (BTN_Continue) BTN_Continue->SetVisibility(ESlateVisibility::Visible);
         break;
@@ -38,7 +37,7 @@ void UMissionMenuWidget::SetupMenuState(EMissionState NewState)
         break;
 
     case EMissionState::GameOver:
-        TXT_Title->SetText(FText::FromString(TEXT("SIGNAL LOST - HULL DESTROYED")));
+        TXT_Title->SetText(FText::FromString(TEXT("SIGNAL LOST ")));
         TXT_Title->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
         break;
         

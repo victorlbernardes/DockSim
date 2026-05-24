@@ -20,7 +20,7 @@ protected:
 	float FuelPercent = 1.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Ship Systems|Resources")
-	EThrustPowerMode ThrustPowerMode;
+	EThrustPowerMode ThrustPowerMode = EThrustPowerMode::Standard;
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Ship Systems|Resources")
 	EFuelStatus CurrentVisualStatus = EFuelStatus::Normal;
