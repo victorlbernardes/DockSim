@@ -6,8 +6,8 @@
 
 void UMenuManagerWidget::NativeConstruct()
 {
-	Super::NativeConstruct();
 	FindCarouselManager();
+	Super::NativeConstruct();
 
 	if (MENU_Switcher) MENU_Switcher->SetActiveWidgetIndex(0);
 	if (CachedCarouselManager) CachedCarouselManager->HideCarousel();
