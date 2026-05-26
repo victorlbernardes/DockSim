@@ -3,11 +3,12 @@
 #include "Player/SpaceShipPawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/SpaceHullComponent.h"
+#include "Core/DockSimGameInstance.h"
+#include "Data/ShipDataAsset.h"
 
 ADockSimGameMode::ADockSimGameMode()
 {
 	PlayerControllerClass = ASpacePlayerController::StaticClass();
-	DefaultPawnClass = ASpaceShipPawn::StaticClass();
 }
 
 void ADockSimGameMode::BeginPlay()
@@ -44,4 +45,17 @@ void ADockSimGameMode::OnMissionVictory() {
 	}
     
 	ShowVictoryScreen();
+}
+
+UClass* ADockSimGameMode::GetDefaultPawnClassForController_Implementation(AController* InController)
+{
+	if (UDockSimGameInstance* GameInst = Cast<UDockSimGameInstance>(GetGameInstance()))
+	{
+		if (GameInst->SelectedShipData && GameInst->SelectedShipData->ActualShipClass) 
+		{
+			return GameInst->SelectedShipData->ActualShipClass;
+		}
+	}
+
+	return ASpaceShipPawn::StaticClass();
 }

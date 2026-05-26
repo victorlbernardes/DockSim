@@ -16,6 +16,8 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Game Flow|UI")
 	void ShowVictoryScreen();
 	
+	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
+	
 protected:
 	virtual void BeginPlay() override;
 
