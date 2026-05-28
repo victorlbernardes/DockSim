@@ -11,7 +11,7 @@ public class DockSim : ModuleRules
 		bLegacyPublicIncludePaths = false;
 
 		PublicDependencyModuleNames.AddRange(new string[] { 
-			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG" 
+			"Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG" , "LevelSequence", "MovieScene"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { 

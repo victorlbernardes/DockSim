@@ -3,6 +3,9 @@
 #include "UI/ShipHUDWidget.h"
 #include "UI/MissionMenuWidget.h"
 #include "Blueprint/UserWidget.h"
+#include "Core/DockSimGameMode.h"
+
+class ADockSimGameMode;
 
 ASpacePlayerController::ASpacePlayerController()
 {
@@ -12,12 +15,37 @@ void ASpacePlayerController::BeginPlay()
 {
     Super::BeginPlay();
 
+    bool bShouldHideForCinematic = false;
+    if (ADockSimGameMode* GM = Cast<ADockSimGameMode>(GetWorld()->GetAuthGameMode()))
+    {
+        bShouldHideForCinematic = GM->bStartInCinematic;
+    }
+
     if (HUDClass)
     {
         MainHUDInstance = CreateWidget<UShipHUDWidget>(this, HUDClass);
         if (MainHUDInstance)
         {
-            MainHUDInstance->AddToViewport();
+            if (!bShouldHideForCinematic)
+            {
+                MainHUDInstance->AddToViewport();
+            }
+            else
+            {
+                CurrentMissionState = EMissionState::Cinematic;
+            }
+        }
+    }
+    
+    if (HUDClass)
+    {
+        MainHUDInstance = CreateWidget<UShipHUDWidget>(this, HUDClass);
+        if (MainHUDInstance)
+        {
+            if (CurrentMissionState != EMissionState::Cinematic)
+            {
+                MainHUDInstance->AddToViewport();
+            }
         }
     }
     
@@ -30,7 +58,6 @@ void ASpacePlayerController::BeginPlay()
             Subsystem->AddMappingContext(ShipMappingContext, 0);
         }
     }
-    SetMissionState(EMissionState::Playing);
 }
 
 
@@ -58,11 +85,31 @@ void ASpacePlayerController::SetMissionState(EMissionState NewState)
 
 void ASpacePlayerController::HandleStateChange(EMissionState NewState)
 {
-    if (NewState == EMissionState::Playing)
+    if (NewState == EMissionState::Cinematic)
+    {
+        bShowMouseCursor = false;
+        if (MainHUDInstance) 
+        {
+            MainHUDInstance->RemoveFromParent();
+            MainHUDInstance->SetVisibility(ESlateVisibility::Hidden);
+        }
+        if (GetPawn()) GetPawn()->DisableInput(this);
+    }
+    else if (NewState == EMissionState::Playing)
     {
         bShowMouseCursor = false;
         SetInputMode(FInputModeGameOnly());
         SetPause(false);
+        
+        if (GetPawn()) GetPawn()->EnableInput(this);
+        if (MainHUDInstance)
+        {
+            if (!MainHUDInstance->IsInViewport())
+            {
+                MainHUDInstance->AddToViewport();
+            }
+            MainHUDInstance->SetVisibility(ESlateVisibility::Visible);
+        }
 
         if (ActiveMenuInstance)
         {

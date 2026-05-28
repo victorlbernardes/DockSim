@@ -8,9 +8,10 @@
 UENUM(BlueprintType)
 enum class EMissionState : uint8
 {
-    Playing     UMETA(DisplayName = "Jogando"),
-    Paused      UMETA(DisplayName = "Pausado"),
-    Victory     UMETA(DisplayName = "Vitória"),
+    Cinematic   UMETA(DisplayName = "Cinematic"),
+    Playing     UMETA(DisplayName = "Playing"),
+    Paused      UMETA(DisplayName = "Paused"),
+    Victory     UMETA(DisplayName = "Victory"),
     GameOver    UMETA(DisplayName = "Game Over")
 };
 
@@ -37,6 +38,9 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Space|GameLoop")
     EMissionState GetCurrentMissionState() const { return CurrentMissionState; }
+    
+    
+    UShipHUDWidget* GetHUDWidget() const { return MainHUDInstance; }
 
 protected:
     virtual void BeginPlay() override;

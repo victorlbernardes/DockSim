@@ -18,6 +18,9 @@ public:
 	
 	virtual UClass* GetDefaultPawnClassForController_Implementation(AController* InController) override;
 	
+	UPROPERTY(EditDefaultsOnly, Category = "Game Flow")
+	bool bStartInCinematic = true;
+	
 protected:
 	virtual void BeginPlay() override;
 
@@ -26,4 +29,8 @@ protected:
 	
 	UFUNCTION()
 	void OnMissionVictory();
+	
+	UFUNCTION()
+	void OnIntroCinematicFinished();
+	
 };
