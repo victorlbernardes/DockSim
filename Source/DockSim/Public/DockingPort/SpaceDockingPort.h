@@ -96,6 +96,15 @@ protected:
 
 	UFUNCTION()
 	void OnPrecisionVolumeEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	
+	UPROPERTY()
+	TObjectPtr<ASpaceShipPawn> ShipInApproachZone;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Docking|Visuals")
+	float FastSpeedThreshold = 2.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Docking|Visuals")
+	float OptimalSpeedThreshold = 0.5f;
 
 private:
 	FTimerHandle SirenTimerHandle;

@@ -17,9 +17,13 @@ void UTelemetryDockingHUDWidget::UpdateTelemetry(float DistanceMeters, float Spe
 		{
 			TXT_Speed->SetColorAndOpacity(FSlateColor(FLinearColor::Red));
 		}
+		else if (SpeedMPS > 0.5f)
+		{
+			TXT_Speed->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow));
+		}
 		else
 		{
-			TXT_Speed->SetColorAndOpacity(FSlateColor(FLinearColor::Green));
+ 			TXT_Speed->SetColorAndOpacity(FSlateColor(FLinearColor::Green));
 		}
 	}
 	

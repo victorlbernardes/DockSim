@@ -55,6 +55,7 @@ ASpaceDockingPort::ASpaceDockingPort()
 	CaptureArea->SetCollisionResponseToAllChannels(ECR_Overlap);
 	CaptureArea->OnComponentBeginOverlap.AddDynamic(this, &ASpaceDockingPort::OnCaptureAreaBeginOverlap);
 	CaptureArea->OnComponentEndOverlap.AddDynamic(this, &ASpaceDockingPort::OnCaptureAreaEndOverlap);
+	CaptureArea->SetHiddenInGame(false);
 	
 	PrecisionDockingVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("PrecisionDockingVolume"));
 	PrecisionDockingVolume->SetupAttachment(DockingAnchor);
@@ -95,11 +96,7 @@ ASpaceDockingPort::ASpaceDockingPort()
 
 void ASpaceDockingPort::BeginPlay()
 {
-	Super::BeginPlay();
-
-	CaptureArea->OnComponentBeginOverlap.AddDynamic(this, &ASpaceDockingPort::OnCaptureAreaBeginOverlap);
-	CaptureArea->OnComponentEndOverlap.AddDynamic(this, &ASpaceDockingPort::OnCaptureAreaEndOverlap);
-	
+	Super::BeginPlay();	
 	if (SirenBulb->GetMaterial(0))
 	{
 		DynamicSirenMaterial = SirenBulb->CreateDynamicMaterialInstance(0, SirenBulb->GetMaterial(0));
@@ -122,27 +119,35 @@ void ASpaceDockingPort::UpdateSirenLogic()
 	float Alpha = 0.0f;
 	float Time = GetWorld()->GetTimeSeconds();
 
-	switch (CurrentDockingStatus)
+	if (CurrentDockingStatus == EDockingStatus::Granted)
 	{
-		case EDockingStatus::None:
-			Color = FLinearColor(0.0f, 0.5f, 1.0f); 
-			Alpha = (FMath::Sin(Time * 2.0f) + 1.0f) * 0.5f;
-			break;
+		Color = FLinearColor(0.0f, 1.0f, 0.0f); 
+		Alpha = 1.0f; 
+	}
+	else if (ShipInApproachZone)
+	{
+		float CurrentSpeedMPS = ShipInApproachZone->GetVelocity().Size() / 100.0f;
 
-		case EDockingStatus::Standby:
-			Color = FLinearColor(1.0f, 1.0f, 0.0f);
-			Alpha = (FMath::Fmod(Time, 0.8f) < 0.4f) ? 1.0f : 0.0f; 
-			break;
-
-		case EDockingStatus::Granted:
-			Color = FLinearColor(0.0f, 1.0f, 0.0f);
-			Alpha = 1.0f; 
-			break;
-
-		case EDockingStatus::Denied:
+		if (CurrentSpeedMPS > FastSpeedThreshold)
+		{
 			Color = FLinearColor(1.0f, 0.0f, 0.0f);
 			Alpha = (FMath::Fmod(Time, 0.2f) < 0.1f) ? 1.0f : 0.0f;
-			break;
+		}
+		else if (CurrentSpeedMPS > OptimalSpeedThreshold)
+		{
+			Color = FLinearColor(1.0f, 1.0f, 0.0f);
+			Alpha = (FMath::Fmod(Time, 0.8f) < 0.4f) ? 1.0f : 0.0f; 
+		}
+		else
+		{
+			Color = FLinearColor(0.0f, 1.0f, 0.0f);
+			Alpha = (FMath::Sin(Time * 3.0f) + 1.0f) * 0.5f; 
+		}
+	}
+	else
+	{
+		Color = FLinearColor(0.0f, 0.5f, 1.0f); 
+		Alpha = (FMath::Sin(Time * 2.0f) + 1.0f) * 0.5f;
 	}
 
 	BeaconLight->SetLightColor(Color);
@@ -156,8 +161,9 @@ void ASpaceDockingPort::OnCaptureAreaBeginOverlap(UPrimitiveComponent* Overlappe
 {
 	if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(OtherActor))
 	{
-		SetDockingStatus(EDockingStatus::Standby);
+		ShipInApproachZone = Ship;
 		
+		SetDockingStatus(EDockingStatus::Standby);
 		Ship->UpdateDockingSignal(ESignalStatus::Acquired);
 	}
 }
@@ -166,8 +172,12 @@ void ASpaceDockingPort::OnCaptureAreaEndOverlap(UPrimitiveComponent* OverlappedC
 {
 	if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(OtherActor))
 	{
-		SetDockingStatus(EDockingStatus::None);
+		if (Ship == ShipInApproachZone)
+		{
+			ShipInApproachZone = nullptr;
+		}
 		
+		SetDockingStatus(EDockingStatus::None);
 		Ship->UpdateDockingSignal(ESignalStatus::Lost);
 	}
 }
