@@ -55,7 +55,6 @@ ASpaceDockingPort::ASpaceDockingPort()
 	CaptureArea->SetCollisionResponseToAllChannels(ECR_Overlap);
 	CaptureArea->OnComponentBeginOverlap.AddDynamic(this, &ASpaceDockingPort::OnCaptureAreaBeginOverlap);
 	CaptureArea->OnComponentEndOverlap.AddDynamic(this, &ASpaceDockingPort::OnCaptureAreaEndOverlap);
-	CaptureArea->SetHiddenInGame(false);
 	
 	PrecisionDockingVolume = CreateDefaultSubobject<UBoxComponent>(TEXT("PrecisionDockingVolume"));
 	PrecisionDockingVolume->SetupAttachment(DockingAnchor);
