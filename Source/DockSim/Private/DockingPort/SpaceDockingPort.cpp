@@ -4,8 +4,10 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "TimerManager.h"
+#include "Components/InterpToMovementComponent.h"
 #include "Components/SpaceTelemetryComponent.h"
 #include "Player/SpaceShipPawn.h" 
+#include "GameFramework/RotatingMovementComponent.h"
 
 ASpaceDockingPort::ASpaceDockingPort()
 {
@@ -91,7 +93,14 @@ ASpaceDockingPort::ASpaceDockingPort()
 
 		RunwayLights.Add(LightMesh);
 	}
+	
+	RotatingMovementComp = CreateDefaultSubobject<URotatingMovementComponent>(TEXT("RotatingMovementComp"));
+	RotatingMovementComp->RotationRate = BaseRotationRate;
+	RotatingMovementComp->bRotationInLocalSpace = true;
+	DriftMovementComp = CreateDefaultSubobject<UInterpToMovementComponent>(TEXT("DriftMovementComp"));
+	DriftMovementComp->BehaviourType = EInterpToBehaviourType::PingPong;
 }
+
 
 void ASpaceDockingPort::BeginPlay()
 {
@@ -102,7 +111,16 @@ void ASpaceDockingPort::BeginPlay()
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(SirenTimerHandle, this, &ASpaceDockingPort::UpdateSirenLogic, 0.05f, true);
-	PrecisionDockingVolume->OnComponentBeginOverlap.AddDynamic(this, &ASpaceDockingPort::OnPrecisionVolumeOverlap);
+	
+	if (DriftMovementComp)
+	{
+		DriftMovementComp->Duration = DriftDuration;
+		DriftMovementComp->ControlPoints.Empty();
+		DriftMovementComp->ControlPoints.Add(FInterpControlPoint(FVector::ZeroVector, true));
+		DriftMovementComp->ControlPoints.Add(FInterpControlPoint(DriftOffset, true));
+		DriftMovementComp->FinaliseControlPoints();
+	}
+	GetWorld()->GetTimerManager().SetTimer(VelocityTimerHandle, this, &ASpaceDockingPort::CalculateRealVelocity, 0.05f, true);
 }
 
 void ASpaceDockingPort::SetDockingStatus(EDockingStatus NewStatus)
@@ -125,7 +143,8 @@ void ASpaceDockingPort::UpdateSirenLogic()
 	}
 	else if (ShipInApproachZone)
 	{
-		float CurrentSpeedMPS = ShipInApproachZone->GetVelocity().Size() / 100.0f;
+		FVector RelativeVelocity = ShipInApproachZone->GetVelocity() - CalculatedVelocity;
+		float CurrentSpeedMPS = RelativeVelocity.Size() / 100.0f;
 
 		if (CurrentSpeedMPS > FastSpeedThreshold)
 		{
@@ -217,9 +236,11 @@ void ASpaceDockingPort::CheckContinuousDocking()
 
     if (ShipInZone->GetCurrentFlightState() == EShipFlightState::LandingMode)
     {
-        float Speed = ShipInZone->GetVelocity().Size() / 100.0f;
-        bool bIsSpeedOk = (Speed <= MaxSafeDockingSpeed);
-        bool bIsAlignmentOk = false;
+    	FVector RelativeVelocity = ShipInZone->GetVelocity() - CalculatedVelocity;
+    	float Speed = RelativeVelocity.Size() / 100.0f;
+        
+    	bool bIsSpeedOk = (Speed <= MaxSafeDockingSpeed);
+    	bool bIsAlignmentOk = false;
 
         if (USpaceTelemetryComponent* Telemetry = ShipInZone->FindComponentByClass<USpaceTelemetryComponent>())
         {
@@ -242,4 +263,17 @@ void ASpaceDockingPort::CheckContinuousDocking()
             SetDockingStatus(EDockingStatus::Denied);
         }
     }
+}
+
+void ASpaceDockingPort::CalculateRealVelocity()
+{
+	FVector CurrentLocation = DockingAnchor->GetComponentLocation();
+	
+	if (LastLocation.IsNearlyZero())
+	{
+		LastLocation = CurrentLocation;
+	}
+
+	CalculatedVelocity = (CurrentLocation - LastLocation) / 0.05f;
+	LastLocation = CurrentLocation;
 }

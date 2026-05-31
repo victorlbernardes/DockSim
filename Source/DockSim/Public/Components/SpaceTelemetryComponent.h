@@ -18,6 +18,11 @@ struct FSpaceTelemetryData
 	UPROPERTY(BlueprintReadOnly) float VelRight   = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float VelUp      = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float VelTotal = 0.0f;
+	
+	UPROPERTY(BlueprintReadOnly) float RelVelForward = 0.0f;
+	UPROPERTY(BlueprintReadOnly) float RelVelRight   = 0.0f;
+	UPROPERTY(BlueprintReadOnly) float RelVelUp      = 0.0f;
+	UPROPERTY(BlueprintReadOnly) float RelVelTotal   = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly) float Pitch = 0.0f;
 	UPROPERTY(BlueprintReadOnly) float Yaw   = 0.0f;
@@ -38,7 +43,6 @@ class DOCKSIM_API USpaceTelemetryComponent : public UActorComponent
 
 public:	
 	USpaceTelemetryComponent();
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Telemetry")
 	float ForwardSpeed;

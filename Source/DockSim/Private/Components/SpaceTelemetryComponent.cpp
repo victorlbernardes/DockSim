@@ -7,8 +7,8 @@
 
 USpaceTelemetryComponent::USpaceTelemetryComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = true;
+	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 }
 
 void USpaceTelemetryComponent::BeginPlay()
@@ -16,32 +16,6 @@ void USpaceTelemetryComponent::BeginPlay()
 	Super::BeginPlay();
 
 	TargetMesh = GetOwner()->FindComponentByClass<UStaticMeshComponent>();
-}
-
-void USpaceTelemetryComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-    AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
-    ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor);
-
-    if (TargetPort && TargetPort->DockingAnchor)
-    {
-       FVector ShipLoc;
-       FVector ShipForward;
-
-       if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(GetOwner()))
-       {
-          USceneComponent* DPoint = Ship->GetDockingPoint(); 
-          ShipLoc = DPoint->GetComponentLocation();
-          ShipForward = DPoint->GetForwardVector();
-       }
-       else
-       {
-          ShipLoc = GetOwner()->GetActorLocation();
-          ShipForward = GetOwner()->GetActorForwardVector();
-       }
-    }
 }
 
 float USpaceTelemetryComponent::ApplyPsychologicalZero(float Value) 
@@ -64,11 +38,8 @@ FSpaceTelemetryData USpaceTelemetryComponent::GetLatestTelemetry()
 
 		AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ASpaceDockingPort::StaticClass());
 		if (ASpaceDockingPort* TargetPort = Cast<ASpaceDockingPort>(FoundActor))
-        		{
-			if (UPrimitiveComponent* PortRoot = Cast<UPrimitiveComponent>(TargetPort->GetRootComponent()))
-			{
-				TargetGlobalVelocity = PortRoot->GetPhysicsLinearVelocity();
-			}
+		{
+			TargetGlobalVelocity = TargetPort->GetRealVelocity();
 
 			USceneComponent* DPoint = nullptr;
 			if (ASpaceShipPawn* Ship = Cast<ASpaceShipPawn>(Owner)) 
@@ -98,15 +69,20 @@ FSpaceTelemetryData USpaceTelemetryComponent::GetLatestTelemetry()
 
 			float AlignmentTemp = (RotPercent * PathPercent) / 100.0f;
 			Data.NoseAlignmentPercent = AlignmentTemp; 
-        }
+		}
+
+		Data.VelForward = ApplyPsychologicalZero(FVector::DotProduct(ShipGlobalVelocity, Owner->GetActorForwardVector()) / 100.f);
+		Data.VelRight   = ApplyPsychologicalZero(FVector::DotProduct(ShipGlobalVelocity, Owner->GetActorRightVector()) / 100.f);
+		Data.VelUp      = ApplyPsychologicalZero(FVector::DotProduct(ShipGlobalVelocity, Owner->GetActorUpVector()) / 100.f);
+		Data.VelTotal   = ShipGlobalVelocity.Size() / 100.0f;
 
 		FVector RelativeVelocity = ShipGlobalVelocity - TargetGlobalVelocity;
-        
-		Data.VelForward = ApplyPsychologicalZero(FVector::DotProduct(RelativeVelocity, Owner->GetActorForwardVector()) / 100.f);
-		Data.VelRight   = ApplyPsychologicalZero(FVector::DotProduct(RelativeVelocity, Owner->GetActorRightVector()) / 100.f);
-		Data.VelUp      = ApplyPsychologicalZero(FVector::DotProduct(RelativeVelocity, Owner->GetActorUpVector()) / 100.f);
-		Data.VelTotal = RelativeVelocity.Size() / 100.0f;
 		
+		Data.RelVelForward = ApplyPsychologicalZero(FVector::DotProduct(RelativeVelocity, Owner->GetActorForwardVector()) / 100.f);
+		Data.RelVelRight   = ApplyPsychologicalZero(FVector::DotProduct(RelativeVelocity, Owner->GetActorRightVector()) / 100.f);
+		Data.RelVelUp      = ApplyPsychologicalZero(FVector::DotProduct(RelativeVelocity, Owner->GetActorUpVector()) / 100.f);
+		Data.RelVelTotal   = RelativeVelocity.Size() / 100.0f;
+
 		FRotator CurrentRot = Owner->GetActorRotation();
 		Data.Pitch = CurrentRot.Pitch;
 		Data.Yaw   = CurrentRot.Yaw;

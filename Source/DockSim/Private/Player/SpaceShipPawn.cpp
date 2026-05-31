@@ -434,7 +434,7 @@ void ASpaceShipPawn::UpdateDockingMonitor()
 
 	MainHUDInstance->UpdateDockingTelemetry(
 		CurrentData.Distance, 
-		CurrentData.VelTotal, 
+		CurrentData.RelVelTotal, 
 		CurrentData.NoseAlignmentPercent, 
 		CurrentData.RollAlignmentPercent, 
 		StatusText, 

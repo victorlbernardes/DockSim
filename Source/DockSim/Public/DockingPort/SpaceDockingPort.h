@@ -9,6 +9,8 @@ class UStaticMeshComponent;
 class UPointLightComponent;
 class UMaterialInstanceDynamic;
 class ASpaceShipPawn;
+class URotatingMovementComponent;
+class UInterpToMovementComponent;
 
 UENUM(BlueprintType)
 enum class EDockingStatus : uint8
@@ -41,10 +43,16 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Docking")
 	void SetDockingStatus(EDockingStatus NewStatus);
+	
+	UFUNCTION(BlueprintPure, Category = "Docking")
+	FVector GetRealVelocity() const { return CalculatedVelocity; }
 
 protected:
 	virtual void BeginPlay() override;
-
+	
+	UFUNCTION()
+	void CalculateRealVelocity();
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Components")
 	TObjectPtr<UStaticMeshComponent> DockStructureMesh;
 
@@ -105,7 +113,26 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Docking|Visuals")
 	float OptimalSpeedThreshold = 0.5f;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Movement")
+	TObjectPtr<URotatingMovementComponent> RotatingMovementComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Docking Rules|Difficulty")
+	FRotator BaseRotationRate = FRotator(0.0f, 0.0f, 1.0f);
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Docking|Movement")
+	TObjectPtr<UInterpToMovementComponent> DriftMovementComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Docking Rules|Difficulty")
+	FVector DriftOffset = FVector(0.0f, 800.0f, 0.0f); 
+
+	// Quantos segundos ela leva para ir do Ponto A ao Ponto B
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Docking Rules|Difficulty")
+	float DriftDuration = 20.0f;
 
 private:
 	FTimerHandle SirenTimerHandle;
+	FTimerHandle VelocityTimerHandle;
+	FVector LastLocation = FVector::ZeroVector;
+	FVector CalculatedVelocity = FVector::ZeroVector;
 };
