@@ -126,7 +126,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Docking Rules|Difficulty")
 	FVector DriftOffset = FVector(0.0f, 800.0f, 0.0f); 
 
-	// Quantos segundos ela leva para ir do Ponto A ao Ponto B
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Docking Rules|Difficulty")
 	float DriftDuration = 20.0f;
 

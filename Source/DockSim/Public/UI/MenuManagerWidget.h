@@ -24,6 +24,9 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable, Category="Menu Navigation")
 	void GoToShipSelection();
+	
+	UFUNCTION(BlueprintCallable, Category="Menu Navigation")
+	void GoToStageSelection();
 
 	UFUNCTION(BlueprintCallable, Category="Menu Navigation")
 	void GoToControls();

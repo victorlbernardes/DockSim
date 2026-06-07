@@ -27,15 +27,19 @@ void UMenuManagerWidget::GoToShipSelection()
 	if (MENU_Switcher) MENU_Switcher->SetActiveWidgetIndex(1);
 	if (CachedCarouselManager) CachedCarouselManager->ShowCarousel();
 }
-
-void UMenuManagerWidget::GoToControls()
+void UMenuManagerWidget::GoToStageSelection()
 {
 	if (MENU_Switcher) MENU_Switcher->SetActiveWidgetIndex(2);
 }
 
-void UMenuManagerWidget::GoToSettings()
+void UMenuManagerWidget::GoToControls()
 {
 	if (MENU_Switcher) MENU_Switcher->SetActiveWidgetIndex(3);
+}
+
+void UMenuManagerWidget::GoToSettings()
+{
+	if (MENU_Switcher) MENU_Switcher->SetActiveWidgetIndex(4);
 }
 
 void UMenuManagerWidget::GoToMainMenu()
