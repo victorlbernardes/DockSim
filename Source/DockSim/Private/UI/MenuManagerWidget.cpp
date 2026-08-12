@@ -42,6 +42,11 @@ void UMenuManagerWidget::GoToSettings()
 	if (MENU_Switcher) MENU_Switcher->SetActiveWidgetIndex(4);
 }
 
+void UMenuManagerWidget::GoToCredits()
+{
+	if (MENU_Switcher) MENU_Switcher->SetActiveWidgetIndex(5);
+}
+
 void UMenuManagerWidget::GoToMainMenu()
 {
 	if (MENU_Switcher && MENU_Switcher->GetActiveWidgetIndex() == 1)

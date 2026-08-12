@@ -33,6 +33,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Menu Navigation")
 	void GoToSettings();
+	
+	UFUNCTION(BlueprintCallable, Category="Menu Navigation")
+	void GoToCredits();
 
 	UFUNCTION(BlueprintCallable, Category="Menu Navigation")
 	void GoToMainMenu();
