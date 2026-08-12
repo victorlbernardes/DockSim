@@ -12,18 +12,7 @@ void USpaceHullComponent::BeginPlay()
 
 void USpaceHullComponent::ProcessImpact(float ImpactSpeed)
 {
-	if (CurrentState == EIntegrityState::Critical) return;
 
-	if (ImpactSpeed < 0.2f) return;
-
-	if (ImpactSpeed >= CriticalThreshold)
-	{
-		CurrentState = EIntegrityState::Critical;
-		OnHullCritical.Broadcast(); 
-	}
-	else if (ImpactSpeed >= WarningThreshold)
-	{
-		CurrentState = EIntegrityState::Warning;
-		OnHullWarning.Broadcast(ImpactSpeed); 
-	}
+	CurrentState = EIntegrityState::Critical;
+	OnHullCritical.Broadcast(); 
 }

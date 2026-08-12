@@ -1,420 +1,218 @@
-# 🎮 GDD – Space Docking Simulator (nome provisório)
+# DockSim – Space Docking Simulator
 
 ---
 
-## 1. 🎯 Visão do Jogo
+## 1. Visão do Jogo
 
-Jogo de pilotagem espacial focado em **controle técnico e acoplamento preciso (docking)**.
-
-Objetivo: entregar uma experiência baseada em habilidade, leitura de instrumentos e domínio da física.
+Simulador de pilotagem espacial focado em **controle técnico e acoplamento preciso (docking)** em 6 DOF com física newtoniana realista.
 
 ---
 
-## 2. 🎮 Core Gameplay Loop
+## 2. Core Gameplay Loop (Implementado)
 
-1. Selecionar contrato
-2. Navegar até o alvo
-3. Entrar na zona de docking
-4. Alternar para modo docking
-5. Realizar acoplamento
-6. Receber avaliação
-7. Progredir
-
----
-
-## 3. 🧠 Mecânicas Principais
-
-### 🚀 Controle (6 DOF)
-
-- Translação (X, Y, Z)
-- Rotação (pitch, yaw, roll)
-- Thrusters
-
-### ⚙️ Física
-
-- Inércia
-- Sem atrito
-- Movimento contínuo
-- Velocidade relativa como base
+1. **Selecionar nave** (Menu Principal → Ship Selection) 
+2. **Navegar até a estação** (Voo livre com física 6 DOF)
+3. **Entrar na zona de captura** (SensorShield 500m → sinal "Acquired")
+4. **Ativar Modo Docking** (Tecla `Dock` → câmera CFTV + HUD dedicado)
+5. **Alinhar e aproximar** (Velocidade relativa ≤ 2 m/s, Alinhamento ≥ 95%)
+6. **Hard Lock Automático** (Acoplamento + Vitória)
+7. **Game Over** se colidir com qualquer objeto (exceto porta de docking)
 
 ---
 
-## 4. 🎮 Modos de Pilotagem
+## 3. Mecânicas Principais
 
-- Assistido
-- Padrão
-- Simulação (sem assistência)
+### Controle (6 DOF)
+- **Translação**: W/S (Forward/Back), A/D (Strafe L/R), Space/C (Up/Down)
+- **Rotação**: Mouse Y (Pitch), Mouse X + Shift (Yaw), Mouse X + Alt (Roll)
+- **Throttle Mestre**: Scroll Wheel (0–100% multiplicador de força)
+- **Precision Mode**: Tecla dedicada (reduz força para manobras finas)
+- **SAS (Estabilizador)**: H/X – frena velocidade linear/angular automaticamente
+- **Free Look**: Tecla dedicada – olha ao redor no cockpit (não gira a nave)
 
----
+### Física (Newtoniana)
+- **F = m · a** – Força aplicada em Newtons no StaticMeshComponent
+- **Inércia real** – Sem atrito, movimento contínuo
+- **Massa configurável** (2.000–5.000 kg) afeta aceleração
+- **Angular Damping** simula giroscópios internos
+- **SimulationMultiplier (100x)** – Física lenta/estável, HUD mostra valores altos
 
-## 5. 🛰️ Modos de Operação
-
-### 🧭 Pilotagem
-
-- Navegação até o alvo
-- Controle macro
-
-### 🛰️ Docking
-
-- Controle fino
-- Ajustes de posição, rotação e velocidade
-
----
-
-## 6. 🛰️ Sistema de Docking
-
-### Requisitos para sucesso:
-
-- Posição dentro da tolerância
-- Rotação alinhada
-- Velocidade segura
-
-### Resultado:
-
-- Docking automático ao atingir condições
+### Estados de Voo (`EShipFlightState`)
+| Estado | Descrição |
+|--------|-----------|
+| `FreeFlying` | Voo livre, navegação até alvo |
+| `LandingMode` | Modo docking ativo (CFTV + HUD docking) |
+| `Docked` | Acoplado com sucesso (vitória) |
+| `Disabled` | Destruído/Game Over (spin aleatório) |
 
 ---
 
-## 7. 📊 HUD
-
-> Principal interface de aprendizado e controle.
-> 
-
-### Cockpit
-
-- Direção da nave
-- Direção do movimento
-- Velocidade relativa
-- Alvo e distância
-- 
-## 8. ⚙️ Sistema de Cálculo
-
-Baseado em valores relativos ao alvo.
-
-- Posição relativa → offset X/Y + distância
-- Velocidade relativa → forward + lateral
-- Rotação relativa → pitch/yaw/roll
-- Direção → vetor até o alvo
-
----
-
-## 9. ⭐ Sistema de Avaliação
-
-Avaliação baseada em:
-
-- Precisão (offset)
-- Estabilidade (oscilações)
-- Velocidade (controle de aproximação)
-
-Resultado:
-
-- Score por categoria
-
-Objetivo:
-
-- Feedback
-- Progressão
-
----
-
-## 10. 🔄 Sistema de Feedback ao Jogador
-
-### Visual
-
-- HUD
-- Indicadores de risco
-
-### Sonoro
-
-- Alertas de velocidade
-- Confirmações de alinhamento
-- Docking concluído
-
-### Crítico
-
-- Avisos de erro
-- Feedback de risco
-
----
-
-## 11. 🛰️ Sistema de Assistência
-
-Opcional
-
-- Linha de aproximação
-- Indicação de correção
-
-Mais presente no modo assistido
-
----
-
-## 12. 📈 Progressão
-
-Sistema de licenças:
-
-- D → básico
-- C → intermediário
-- B → avançado
-- A → especialista
-
-Baseado em performance
-
----
-
-## 13. 🧩 Variações de Desafio
-
-### Docking Ports
-
-- Fixo
-- Rotacional
-- Desalinhado
-- Danificado
-
-### Ambiente
-
-- Baixa visibilidade
-- Iluminação reduzida
-- Movimento da estação
-
----
-
-## 14. 🧭 Tipos de Missão
-
-- Comercial
-- Resgate
-- Rebocador
-- Manutenção
-- Transporte sensível
-
----
-
-## 15. 🎮 MVP
-
-- Controle da nave
-- Física básica
-- Sistema de docking
-- HUD essencial
-- Sistema de avaliação
-
----
-
-## 16. 🧱 Roadmap
-
-1. Movimento
-2. Física
-3. Assistência
-4. HUD
-5. Docking
-6. Avaliação
-7. Missões
-
----
-
-## 17. 🚧 Escopo
-
-Sem combate
-
-Sem multiplayer
-
-Foco:
-
-- Pilotagem
-- Precisão
-
----
-
-## 18. 🎯 Critério de Sucesso
-
-- Jogador entende o HUD
-- Evolui com prática
-- Docking é consistente e satisfatório
-
----
-
-## 19. 🧠 Filosofia
-
-Domínio vem da leitura de instrumentos e execução precisa.
-
----
-
-# 🛰️ Documento de Evolução Técnica: Projeto DockSim
-
-## 1. Sistema de Controle e Máquina de Estados (Backend)
-
-Em vez de variáveis booleanas isoladas, implementamos uma **Máquina de Estados de Contexto de Voo** via `enum` para gerenciar como o input do jogador é interpretado.
-
-### Enum: `ESpaceControlContext`
-
-Define os modos:
-
-- `PitchOnly`
-- `YawMode`
-- `RollMode`
-- `FullPrecision`
-- `Stabilizing`
-
-### Lógica de Override
-
-O sistema foi configurado para que **qualquer input manual de movimento ou rotação desative automaticamente o modo de estabilização**, devolvendo o controle imediato ao piloto.
-
-### Joystick Virtual
-
-Implementamos o **acúmulo de rotação (Clamp de -1.0 a 1.0)** para que o mouse funcione como um manche físico, mantendo a inclinação até ser:
-
-- zerado manualmente, ou
-- resetado via auto-centralização
-
----
-
-## 2. Enhanced Input e Gerenciamento de Potência
-
-Abandonamos o sistema de input legado em favor do **Enhanced Input Plugin da Unreal Engine 5**.
-
-### Master Throttle (Potência Mestre)
-
-- Variável: `MasterPowerScale`
-- Controle via **Scroll do Mouse**
-
-### Escalonamento de Força
-
-- A potência ajustada pelo jogador (0% a 100%)
-- Atua como **multiplicador direto no empuxo dos motores**
-- Permite manobras de docking de alta precisão
-
-### Feedback Visual
-
-- O valor do Throttle é enviado em tempo real para o HUD
-- Faixa: **0% – 100%**
-
----
-
-## 3. Componente de Telemetria Avançada (`SpaceTelemetryComponent`)
-
-Desenvolvemos um componente desacoplado que processa a física bruta e a transforma em dados legíveis para a interface.
-
-### Decomposição de Vetores
-
-- Converte velocidade global (`FVector`)
-- Em velocidades locais:
-    - Forward
-    - Lateral
-    - Vertical
-- Unidade: **m/s**
-
-### Cálculo de G-Force
-
-- Medição de aceleração em Gs
-- Separação por eixos
-- Estados:
-    - `Normal`
-    - `Warning`
-    - `Critical`
-
-### Escala de Simulação (`SimulationMultiplier`)
-
-Para evitar erros de precisão em altas velocidades:
-
-- Física real → permanece lenta (estável)
-- HUD → exibe valores multiplicados (ex: `100x`)
-
-✔ Permite sensação de **~19.000 m/s sem jitter de renderização**
-
----
-
-## 4. Modelo de Voo e Física (`SpaceMovementComponent`)
-
-A movimentação foi baseada na **Segunda Lei de Newton**:
-
+## 4. Sistema de Docking
+
+### Zonas de Detecção (SpaceDockingPort)
+| Zona | Extensão | Função |
+|------|----------|--------|
+| `CaptureArea` | 1500m (Box) | Detecta aproximação → Sinal "Acquired", luzes laranja |
+| `PrecisionDockingVolume` | 10×50×50m (Box) | Validação contínua a 10Hz para hard lock |
+
+### Critérios de Sucesso (AND Lógico)
+1. **Velocidade Relativa ≤ 2 m/s** (`MaxSafeDockingSpeed`)
+2. **Nose Alignment ≥ 95%** (Forward da nave oposto ao Forward da porta)
+3. **Roll Alignment ≥ 95%** (Up da nave alinhado com Up da porta)
+4. **Distância ≤ 10m** (DockingPoint → DockingAnchor)
+5. **Estado = LandingMode**
+
+### Velocidade Relativa
+```cpp
+RelativeVelocity = ShipVelocity - StationVelocity  // Vetorial, magnitude em m/s
 ```
-F = m · a
+- Estação move-se (RotatingMovement + InterpToMovement para deriva ping-pong)
+- Sistema compensa automaticamente – nave deve "acompanhar" o movimento
+
+### Hard Lock
+- Zera velocidades lineares/angulares
+- Anexa ShipMesh ao DockingAnchor (SnapToTarget)
+- Transição para `Docked` → Victory Screen
+
+---
+
+## 5. Sistema de Colisão / Game Over
+
+**Qualquer colisão ou overlap com objeto NÃO-porta = Game Over Instantâneo**
+
+```cpp
+// OnSensorOverlap / OnShipHit
+if (OtherActor is NOT ASpaceDockingPort) → TriggerGameOver()
 ```
 
-### Aplicação de Empuxo (Thrust)
+### TriggerGameOver()
+- Estado → `Disabled`
+- Física: Velocidade zero + Spin aleatório (±30°/s em cada eixo)
+- Controller → `EMissionState::GameOver` (Mostra tela Game Over)
+- Audio → Som de falha
+- Limpa timers de telemetria
 
-- Força aplicada em Newtons
-- Direcionada ao `StaticMeshComponent`
-- Respeita a massa configurada da nave
-
-### SAS (Stability Augmentation System)
-
-Sistema de estabilização automática que:
-
-- Aplica contra-força proporcional à:
-    - velocidade linear
-    - torque atual
-
-✔ Resultado: nave estabilizada automaticamente no espaço
-
-### Angular Damping Dinâmico
-
-- Simula resistência de giroscópios internos
-- Evita rotação infinita descontrolada
+### Exceção: Porta de Docking
+Ignora colisões com todos os componentes da porta:
+- `DockStructureMesh`, `CaptureArea`, `PrecisionDockingVolume`, `DockingAnchor`, `RunwayLights`, `SirenBulb`
 
 ---
 
-## 5. Otimização de Performance e Renderização
+## 6. HUD & Telemetria
 
-### Tick Gerenciado
+### Widgets Ativos (ShipHUDWidget)
+| Widget | Modo | Dados Exibidos |
+|--------|------|----------------|
+| `TelemetryMovementHUDWidget` | FreeFlying | Velocidades locais (F/R/U), Total, Throttle %, Modo Thrust |
+| `TelemetryDockingHUDWidget` | LandingMode | Distância, Vel. Relativa, Alinhamento Nose/Roll %, Status Text |
+| `CameraHUDWidget` | LandingMode | Feed SceneCapture2D (Câmera docking 1024×1024) |
+| `AlertSwitcher` | Ambos | Sinal: Lost / Acquired |
 
-- O `SpaceMovementComponent` só executa Tick de estabilização quando:
-    - modo `Stabilizing` está ativo
-
-✔ Economia de CPU
-
-### Cockpit-Centric Design
-
-Foco total na visão interna:
-
-- Uso de **FOV Dinâmico**
-- FOV aumenta conforme a velocidade simulada cresce
-
-✔ Cria efeito de velocidade extrema (tipo dobra)
-
-✔ Sem mover o ator além dos limites do mapa
+### TelemetryComponent (Atualização 60Hz via HUD Timer)
+- Decomposição vetorial: Global → Local (Forward/Right/Up) em m/s
+- Velocidade relativa calculada vs alvo
+- `ApplyPsychologicalZero(0.05)` – Limpa ruído visual
+- `IsReadyForHardLock()` – Validação client-side espelhada
 
 ---
 
-## 📝 Resumo de Variáveis Críticas para Ajuste Fino (Editor)
+## 7. Componentes da Nave (Todos Ativos no Pawn)
 
-| Variável | Localização | Valor Recomendado | Efeito |
-| --- | --- | --- | --- |
-| `ThrustForce` | MovementComp | 25.000 – 50.000 | Força de aceleração linear |
-| `RotationForce` | MovementComp | 50.000+ | Resposta de torque/rotação |
-| `AngularDamping` | ShipMesh | 0.8 – 2.0 | Resistência à rotação contínua |
-| `MassInKg` | ShipMesh | 2.000 – 5.000 | Peso e inércia da nave |
-| `SimulationMultiplier` | TelemetryComp | 100.0 | Escala entre física real e HUD |
-
-# ⌨️ Mapeamento de Comandos (Input Mapping)
-
-Este mapeamento foi projetado para equilibrar a complexidade de um simulador espacial com a acessibilidade de um jogo em cockpit.
+| Componente | Responsabilidade |
+|------------|------------------|
+| `SpaceMovementComponent` | Input → Força/Torque, Throttle, Precision Mode, SAS, Consumo combustível |
+| `SpaceTelemetryComponent` | Cálculos vetoriais, Alignment %, Relative Velocity |
+| `SpaceResourceComponent` | Combustível (consumo por translação/rotação), Status Normal/Low/Empty |
+| `SpaceHullComponent` | **Legado** – ProcessImpact não é mais chamado (Game Over instantâneo) |
+| `CFTVComponent` | Gerencia SceneCapture2D + RenderTarget para câmera docking |
+| `SpaceAudioComponent` | Sons: Thrust, Crash, Docking Success/Fail, Alertas |
 
 ---
 
-## 1. Translação (Movimento Linear)
+## 8. Input Mapping (Enhanced Input - Todos Funcionando)
 
-| Comando | Tecla / Input | Ação no Código | Descrição |
-| --- | --- | --- | --- |
-| Frente / Trás | `W / S` | `HandleMove (Y)` | Aplica empuxo no eixo longitudinal |
-| Esquerda / Direita | `A / D` | `HandleMove (X)` | Aplica empuxo lateral (Strafe) |
-| Cima / Baixo | `Space / C` | `HandleMove (Z)` | Aplica empuxo vertical |
-
----
-
-## 2. Rotação (Atitude)
-
-| Comando | Tecla / Input | Ação no Código | Descrição |
-| --- | --- | --- | --- |
-| Pitch (Bico) | `Mouse Y` | `HandleLook (Y)` | Inclina a nave para cima ou para baixo |
-| Yaw (Guinada) | `Mouse X (Modo Yaw)` | `HandleLook (Z)` | Gira o nariz da nave para os lados |
-| Roll (Rolagem) | `Mouse X (Modo Roll)` | `HandleLook (X)` | Gira a nave em torno do próprio eixo |
+| Ação | Binding | Triggers |
+|------|---------|----------|
+| Move (3D Vector) | `MoveAction` | Triggered/Completed/Canceled |
+| Look (2D) | `LookAction` | Triggered/Completed/Canceled |
+| Roll | `RollAction` | Triggered/Completed/Canceled |
+| Throttle | `ThrottleAction` | Triggered (float) |
+| Precision Mode | `PrecisionAction` | Started/Completed |
+| Free Look | `FreeLookAction` | Started (Toggle) |
+| Dock Button | `DockAction` | Started |
+| Headlights | `ToggleHeadlightsAction` | Started |
+| Pause | `PauseAction` | Started |
 
 ---
 
-## 3. Sistemas de Voo e Precisão
+## 9. Estrutura de Missão (SpacePlayerController)
 
-| Comando | Tecla / Input | Ação no Código | Descrição |
-| --- | --- | --- | --- |
-| Ajustar Potência | `Mouse Wheel` | `HandleAdjustThrottle` | Ajusta o `MasterPowerScale` (0% – 100%) |
-| Toggle Yaw | `Shift` *(ou configurável)* | `ToggleYawMode` | Alterna eixo X do mouse para controle de Yaw |
-| Toggle Roll | `Alt` *(ou configurável)* | `ToggleRollMode` | Alterna eixo X do mouse para controle de Roll |
-| Estabilizador (SAS) | `H / X` | `ToggleStabilizer` | Ativa/desativa frenagem automática (computador de bordo) |
+### Estados (`EMissionState`)
+`Cinematic` → `Playing` → `Paused` / `Victory` / `GameOver`
+
+### Fluxo Implementado
+1. **BeginPlay** → Cria HUD, adiciona MappingContext
+2. **Cinematic** (se `bStartInCinematic`) → LevelSequence → `OnIntroCinematicFinished` → `Playing`
+3. **Playing** → Input GameOnly, HUD visível
+4. **Pause** (P) → `Paused` → Cria `MissionMenuWidget` (Restart/Main Menu/Continue)
+5. **Victory/GameOver** → UI Only, Mouse Cursor, Tela correspondente
+
+---
+
+## 10. GameMode & GameInstance
+
+### DockSimGameMode (Funcional)
+- `PlayerControllerClass = ASpacePlayerController`
+- `DefaultPawnClass` → Vem de `DockSimGameInstance.SelectedShipData.ActualShipClass` (fallback: `ASpaceShipPawn`)
+- Liga eventos: `Ship.OnDockingCompleted` → Victory
+
+### DockSimGameInstance (Existe, não configurado no .uproject)
+- Persiste `SelectedShipData` (UShipDataAsset) entre menus/jogo
+- **Pendente**: Adicionar `"GameInstanceClass": "/Script/DockSim.DockSimGameInstance"` no `.uproject`
+
+---
+
+## 11. Sistema de Menu (Parcial)
+
+| Classe | Status                            | Notas |
+|--------|-----------------------------------|-------|
+| `MissionMenuWidget` | ✅ Funcional                      | Pause/Victory/GameOver – Restart/MainMenu/Continue |
+| `MenuManagerWidget` | ✅ Funcional                      | Menu principal (Ship/Stage/Controls/Settings) |
+| `ShipCarouselManager` | ✅ Funcional                      | Actor para seleção visual de naves |
+| `ResourceWidget` | ✅ Funcional | HUD combustível/throttle/headlights |
+
+---
+
+## 12. Variáveis de Ajuste (Editor)
+
+| Variável | Componente | Valor Típico |
+|----------|------------|--------------|
+| `ThrustForce` | MovementComp | 25.000 – 50.000 |
+| `TorqueForce` | MovementComp | 50.000+ |
+| `AngularDamping` | ShipMesh | 0.8 – 2.0 |
+| `MassInKg` | ShipMesh | 2.000 – 5.000 |
+| `SimulationMultiplier` | TelemetryComp | 100.0 |
+| `MaxSafeDockingSpeed` | DockingPort | 2.0 m/s |
+| `LinearInputSmoothing` | MovementComp | 5.0–10.0 |
+| `InputCurveExponent` | MovementComp | 1.5–2.5 |
+
+---
+
+## 13. Pendências Conhecidas
+
+- [ ] Instanciar `MenuManagerWidget` + `ResourceWidget` no HUD
+- [ ] Spawnar `ShipCarouselManager` no nível do menu
+- [ ] Configurar `GameInstanceClass` no `.uproject`
+- [ ] Sistema de missões/contratos (DataAssets)
+- [ ] Progressão de licenças
+- [ ] Variações de porta (Rotacional, Deriva, Danificado)
+- [ ] Salvamento de progresso
+
+---
+
+## 14. Fora de Escopo
+
+- Combate
+- Multiplayer
+- EVA / FPS
+- Economia / Trading
